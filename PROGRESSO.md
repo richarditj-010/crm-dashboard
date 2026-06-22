@@ -122,8 +122,24 @@ Daiane Cristina Pereira, Camila Peres, Simeão Batista (+ Natalia Otero, sem neg
 | Ex-funcionários ocultos | ✅ Nenhum aparece |
 | Total geral | ⚠️ Diferença fixa de 2 (API conta 2 a mais do que entrega na listagem — quirk do RD Station, ~0,1%, não afeta decisões) |
 
+## 🔐 Acesso ao painel (login)
+
+- **Como entra:** abre o link → aparece uma telinha → digita a senha **`BOSS`** (tudo
+  maiúsculo) → Entrar. **Não tem campo de usuário.**
+- **Onde abrir:**
+  - 🖥️ PC (este computador): atalho **"Abrir Dashboard CRM"** (versão local).
+  - ☁️ Nuvem (PC, iPad, celular): **https://crm-dashboard-x8v6.onrender.com**
+- **Pede senha toda vez:** o login vale só enquanto o navegador está aberto. Fechou e
+  abriu de novo → pede `BOSS` outra vez (vale no PC e no iPad).
+- **Trocar a senha no futuro:** na nuvem, em render.com → serviço `crm-dashboard` →
+  Environment → `PAINEL_SENHA`. No PC, no arquivo `.env` (linha `PAINEL_SENHA`).
+
 ## 🗒️ Histórico (changelog)
 
+- **22/06/2026** — **Login refeito**: trocada a janelinha do navegador (usuário+senha) por
+  uma **tela própria só com a senha** (`BOSS`). Passou a **pedir a senha a cada sessão**
+  (fecha/abre o navegador → pede de novo), no PC e no iPad. Testado e funcionando nos dois.
+  Senha igual no PC e na nuvem (BOSS). Filtros conferidos: OK.
 - **11/06/2026** — Etapas 1 a 7 concluídas. Dashboard Home no ar com dados reais
   (1478 negociações, 16 vendedores, 9 etapas). Conferência de dados feita.
   Diagnóstico: 27 negociações em hold, 3528 atividades disponíveis.
