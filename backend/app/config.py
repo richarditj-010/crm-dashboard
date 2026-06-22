@@ -16,9 +16,9 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
 
 # Senha de acesso ao painel.
 # Ao abrir o painel, aparece uma telinha pedindo só a senha (sem usuário).
-# A senha padrão é "boss". Para trocar, é só definir PAINEL_SENHA no arquivo .env.
+# A senha padrão é "BOSS" (igual à da nuvem). Para trocar, é só definir PAINEL_SENHA no .env.
 # Se quiser DESLIGAR o login (abrir direto, sem pedir nada), deixe PAINEL_SENHA vazio no .env.
-PAINEL_SENHA = os.getenv("PAINEL_SENHA", "boss").strip()
+PAINEL_SENHA = os.getenv("PAINEL_SENHA", "BOSS").strip()
 
 APP_HOST = os.getenv("APP_HOST", "127.0.0.1").strip()
 APP_PORT = int(os.getenv("APP_PORT", "8000"))

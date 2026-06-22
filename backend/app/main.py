@@ -70,9 +70,9 @@ app = FastAPI(title="CRM Dashboard - Hai Logistics", lifespan=lifespan)
 # Ao abrir o painel aparece uma telinha pedindo só a senha. Acertou -> entra e fica
 # logado (um "selo" guardado no navegador por 30 dias). A senha vem do config (.env);
 # se PAINEL_SENHA estiver vazia, o painel abre direto, sem pedir nada.
-COOKIE_LOGIN = "crm_auth"
+COOKIE_LOGIN = "crm_sessao"
 # "Selo" guardado no navegador quando a senha está certa. É derivado da senha, então
-# trocar a senha invalida os acessos antigos automaticamente (e sobrevive a reinícios).
+# trocar a senha invalida os acessos antigos automaticamente.
 SELO_LOGIN = hashlib.sha256(f"crm-hai::{PAINEL_SENHA}".encode("utf-8")).hexdigest()
 
 
@@ -144,9 +144,10 @@ async def login_enviar(request: Request):
     senha = parse_qs(corpo).get("senha", [""])[0]
     if secrets.compare_digest(senha, PAINEL_SENHA):
         resp = RedirectResponse("/", status_code=303)
+        # Cookie "de sessão" (sem validade fixa): o login vale só enquanto o navegador
+        # estiver aberto. Ao fechar e abrir de novo, o painel pede a senha outra vez.
         resp.set_cookie(
             COOKIE_LOGIN, SELO_LOGIN,
-            max_age=60 * 60 * 24 * 30,  # fica logado por 30 dias
             httponly=True, samesite="lax",
         )
         return resp
