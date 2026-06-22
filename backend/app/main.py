@@ -3,16 +3,21 @@ Backend FastAPI do CRM Dashboard.
 - Serve a página do dashboard (frontend)
 - Expõe endpoints internos que entregam os dados já tratados (do SQLite)
 """
+import base64
+import secrets
 import threading
 import time as _time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta, date
 
 from fastapi import FastAPI, Body
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from app.config import FRONTEND_DIR, ANTHROPIC_API_KEY, eh_ex_funcionario, cargo_de
+from app.config import (
+    FRONTEND_DIR, ANTHROPIC_API_KEY, eh_ex_funcionario, cargo_de,
+    PAINEL_USUARIO, PAINEL_SENHA,
+)
 from app.db.database import init_db, SessionLocal
 from app.db.models import Deal, User, DealStage, Activity, SyncLog
 from app.sync import sincronizar
@@ -55,6 +60,33 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="CRM Dashboard - Hai Logistics", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def proteger_com_senha(request, call_next):
+    """Pede usuário e senha antes de mostrar o painel (só quando PAINEL_SENHA está definida).
+
+    Localmente PAINEL_SENHA fica vazia -> não pede nada. Na nuvem (Render) ela é
+    definida -> o navegador mostra a janelinha de login.
+    """
+    if PAINEL_SENHA:
+        cabecalho = request.headers.get("Authorization", "")
+        autorizado = False
+        if cabecalho.startswith("Basic "):
+            try:
+                usuario, _, senha = base64.b64decode(cabecalho[6:]).decode("utf-8").partition(":")
+                autorizado = (
+                    secrets.compare_digest(usuario, PAINEL_USUARIO)
+                    and secrets.compare_digest(senha, PAINEL_SENHA)
+                )
+            except Exception:
+                autorizado = False
+        if not autorizado:
+            return Response(
+                status_code=401,
+                headers={"WWW-Authenticate": 'Basic realm="CRM Dashboard - Hai Logistics"'},
+            )
+    return await call_next(request)
 
 
 def _mes_atual() -> str:
