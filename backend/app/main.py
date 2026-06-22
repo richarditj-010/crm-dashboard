@@ -44,19 +44,13 @@ def _loop_sync(pular_primeira: bool):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ao subir o servidor: cria as tabelas e, se o banco estiver vazio, sincroniza na hora.
+    # Ao subir o servidor: cria as tabelas.
     init_db()
-    db = SessionLocal()
-    vazio = db.query(Deal).count() == 0
-    db.close()
-    if vazio:
-        try:
-            sincronizar()
-        except Exception as e:
-            print(f"[AVISO] Sincronização inicial falhou: {e}")
-    # Liga a atualização automática em segundo plano (a cada SYNC_INTERVALO_MIN minutos).
-    # Se já sincronizou agora (banco estava vazio), pula a primeira para não repetir.
-    threading.Thread(target=_loop_sync, args=(vazio,), daemon=True).start()
+    # IMPORTANTE (nuvem/Render): a sincronização roda SEMPRE em segundo plano, para o
+    # servidor "abrir a porta" na hora e não estourar o tempo de espera do Render.
+    # O _loop_sync(False) faz a primeira busca já agora (em segundo plano) e depois
+    # repete a cada SYNC_INTERVALO_MIN minutos.
+    threading.Thread(target=_loop_sync, args=(False,), daemon=True).start()
     yield
 
 
