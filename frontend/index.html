@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM Dashboard — Hai Logistics</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">📊</span>
+      <div>
+        <h1>CRM Dashboard</h1>
+        <small>Hai Logistics · RD Station CRM</small>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="ultimo-sync" class="sync-label">Última sincronização: —</span>
+      <button id="btn-atualizar" class="btn">↻ Atualizar</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <a class="tab active" data-aba="home">Home</a>
+    <a class="tab" data-aba="atividades">Atividades</a>
+    <a class="tab" data-aba="oportunidades">Oportunidades</a>
+    <a class="tab" data-aba="relatorios">Relatórios</a>
+    <a class="tab" data-aba="perguntas">Perguntas Rápidas</a>
+  </nav>
+
+  <main class="container">
+
+    <!-- HOME -->
+    <section id="aba-home" class="aba">
+      <div class="cards" id="cards"></div>
+      <div class="grid2">
+        <section class="panel">
+          <h2>Pipeline por etapa <small>(abertas)</small></h2>
+          <div id="por-etapa" class="bars"></div>
+        </section>
+        <section class="panel">
+          <h2>Negociações abertas por vendedor</h2>
+          <div id="top-vendedores" class="rank"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ATIVIDADES -->
+    <section id="aba-atividades" class="aba oculta">
+      <section class="panel">
+        <h2>Linha do tempo de atividades</h2>
+        <div class="filtros">
+          <select id="atv-vendedor"><option value="">Todos os vendedores</option></select>
+          <input id="atv-busca" type="text" placeholder="Buscar no texto..." />
+          <button class="btn azul" onclick="carregarAtividades()">Filtrar</button>
+          <span id="atv-total" class="muted"></span>
+        </div>
+        <div id="atv-lista" class="timeline"></div>
+      </section>
+    </section>
+
+    <!-- OPORTUNIDADES -->
+    <section id="aba-oportunidades" class="aba oculta">
+      <section class="panel">
+        <h2>Oportunidades em aberto</h2>
+        <div class="filtros">
+          <select id="op-etapa"><option value="">Todas as etapas</option></select>
+          <select id="op-vendedor"><option value="">Todos os vendedores</option></select>
+          <button class="btn azul" onclick="carregarOportunidades()">Filtrar</button>
+          <span id="op-total" class="muted"></span>
+        </div>
+        <div class="tabela-wrap">
+          <table class="tabela" id="op-tabela">
+            <thead><tr><th>Negociação</th><th>Empresa</th><th>Etapa</th><th>Vendedor</th><th>Valor</th><th>Últ. atividade</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- RELATORIOS -->
+    <section id="aba-relatorios" class="aba oculta">
+      <div class="cards" id="rel-cards"></div>
+      <div class="grid2">
+        <section class="panel">
+          <h2>Funil — negociações abertas por etapa</h2>
+          <canvas id="g-funil" height="220"></canvas>
+        </section>
+        <section class="panel">
+          <h2>Ganhas × Perdidas × Abertas</h2>
+          <canvas id="g-status" height="220"></canvas>
+        </section>
+        <section class="panel">
+          <h2>Negociações abertas por vendedor</h2>
+          <canvas id="g-vendedor" height="260"></canvas>
+        </section>
+        <section class="panel">
+          <h2>Negociações criadas por mês</h2>
+          <canvas id="g-mes" height="260"></canvas>
+        </section>
+      </div>
+      <section class="panel">
+        <h2>Desempenho por vendedor</h2>
+        <div class="tabela-wrap">
+          <table class="tabela" id="rel-tabela">
+            <thead><tr><th>Vendedor</th><th>Cargo</th><th>Abertas</th><th>Ganhas</th><th>Perdidas</th><th>Conversão</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- PERGUNTAS RAPIDAS -->
+    <section id="aba-perguntas" class="aba oculta">
+      <section class="panel destaque-relatorio">
+        <h2>📥 Relatório Geral (para usar com a Claude)</h2>
+        <p class="muted">Baixa um arquivo com todos os números da equipe. Depois é só abrir uma
+          conversa com a Claude, anexar/colar esse arquivo e perguntar o que quiser — ela lê tudo e responde.</p>
+        <button class="btn verde grande" onclick="baixarRelatorio()">📥 Baixar Relatório Geral</button>
+        <span id="rel-status" class="muted"></span>
+      </section>
+
+      <section class="panel">
+        <h2>Perguntas Rápidas</h2>
+        <p class="muted">Clique numa pergunta para ver a resposta na hora (gerada dos seus próprios dados, sem custo).
+          <span id="pr-gerado"></span></p>
+        <div class="pr-botoes" id="pr-botoes"></div>
+        <div id="pr-resposta" class="pr-resposta"></div>
+      </section>
+    </section>
+
+    <p class="rodape">Dados lidos do RD Station CRM (conta da empresa) e guardados localmente. Fase 1.</p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

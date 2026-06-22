@@ -1,0 +1,17 @@
+# ===== Dependências do projeto - CRM Dashboard =====
+# Backend / API
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Cliente HTTP para falar com a API do RD Station CRM
+httpx==0.28.1
+
+# Banco de dados (SQLite na Fase 1, pronto para PostgreSQL no futuro)
+# >=2.0.43 é necessário para compatibilidade com Python 3.14
+SQLAlchemy>=2.0.43
+
+# Carregar variáveis de ambiente do arquivo .env (token, etc.)
+python-dotenv==1.0.1
+
+# IA (Fase 3 - assistente em linguagem natural com Claude)
+anthropic==0.42.0

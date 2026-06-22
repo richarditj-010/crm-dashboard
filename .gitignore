@@ -1,0 +1,20 @@
+# Segredos - NUNCA versionar
+.env
+
+# Banco de dados local
+data/*.db
+data/*.sqlite
+
+# Ambiente virtual Python
+.venv/
+venv/
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
