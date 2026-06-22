@@ -14,11 +14,11 @@ RD_CRM_TOKEN = os.getenv("RD_CRM_TOKEN", "").strip()
 RD_CRM_BASE_URL = os.getenv("RD_CRM_BASE_URL", "https://crm.rdstation.com/api/v1").strip()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
 
-# Senha de acesso ao painel (proteção na nuvem).
-# Se PAINEL_SENHA estiver vazio (uso local), o painel abre sem pedir senha.
-# Na nuvem (Render), defina PAINEL_SENHA para exigir login (usuário + senha).
-PAINEL_USUARIO = os.getenv("PAINEL_USUARIO", "hai").strip()
-PAINEL_SENHA = os.getenv("PAINEL_SENHA", "").strip()
+# Senha de acesso ao painel.
+# Ao abrir o painel, aparece uma telinha pedindo só a senha (sem usuário).
+# A senha padrão é "boss". Para trocar, é só definir PAINEL_SENHA no arquivo .env.
+# Se quiser DESLIGAR o login (abrir direto, sem pedir nada), deixe PAINEL_SENHA vazio no .env.
+PAINEL_SENHA = os.getenv("PAINEL_SENHA", "boss").strip()
 
 APP_HOST = os.getenv("APP_HOST", "127.0.0.1").strip()
 APP_PORT = int(os.getenv("APP_PORT", "8000"))

@@ -3,20 +3,24 @@ Backend FastAPI do CRM Dashboard.
 - Serve a página do dashboard (frontend)
 - Expõe endpoints internos que entregam os dados já tratados (do SQLite)
 """
-import base64
+import hashlib
 import secrets
 import threading
 import time as _time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta, date
 
-from fastapi import FastAPI, Body
-from fastapi.responses import FileResponse, PlainTextResponse, Response
+from urllib.parse import parse_qs
+
+from fastapi import FastAPI, Body, Request
+from fastapi.responses import (
+    FileResponse, PlainTextResponse, Response, RedirectResponse, HTMLResponse,
+)
 from fastapi.staticfiles import StaticFiles
 
 from app.config import (
-    FRONTEND_DIR, ANTHROPIC_API_KEY, eh_ex_funcionario, cargo_de,
-    PAINEL_USUARIO, PAINEL_SENHA,
+    FRONTEND_DIR, ANTHROPIC_API_KEY, eh_ex_funcionario, cargo_de, _normaliza,
+    PAINEL_SENHA,
 )
 from app.db.database import init_db, SessionLocal
 from app.db.models import Deal, User, DealStage, Activity, SyncLog
@@ -62,31 +66,91 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="CRM Dashboard - Hai Logistics", lifespan=lifespan)
 
 
+# --- Login simples por senha (tela própria, sem campo de usuário) ---
+# Ao abrir o painel aparece uma telinha pedindo só a senha. Acertou -> entra e fica
+# logado (um "selo" guardado no navegador por 30 dias). A senha vem do config (.env);
+# se PAINEL_SENHA estiver vazia, o painel abre direto, sem pedir nada.
+COOKIE_LOGIN = "crm_auth"
+# "Selo" guardado no navegador quando a senha está certa. É derivado da senha, então
+# trocar a senha invalida os acessos antigos automaticamente (e sobrevive a reinícios).
+SELO_LOGIN = hashlib.sha256(f"crm-hai::{PAINEL_SENHA}".encode("utf-8")).hexdigest()
+
+
+def _logado(request) -> bool:
+    """True se o navegador já tem o selo de login válido."""
+    return secrets.compare_digest(request.cookies.get(COOKIE_LOGIN, ""), SELO_LOGIN)
+
+
+def _pagina_login(erro: bool = False) -> HTMLResponse:
+    """A telinha de login: só uma caixa de senha + botão Entrar."""
+    aviso = '<p class="erro">Senha incorreta. Tente de novo.</p>' if erro else ""
+    html = f"""<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Entrar — CRM Dashboard</title>
+<style>
+  *{{box-sizing:border-box}} body{{margin:0;font-family:Segoe UI,Arial,sans-serif;
+    background:#0f2540;display:flex;align-items:center;justify-content:center;min-height:100vh}}
+  .cartao{{background:#fff;padding:36px 32px;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.3);
+    width:340px;text-align:center}}
+  .logo{{font-size:42px}} h1{{font-size:20px;margin:8px 0 2px;color:#0f2540}}
+  small{{color:#6b7a90}} form{{margin-top:22px}}
+  input{{width:100%;padding:13px 14px;font-size:16px;border:2px solid #cdd7e3;border-radius:9px;
+    outline:none}} input:focus{{border-color:#1565c0}}
+  button{{width:100%;margin-top:12px;padding:13px;font-size:16px;font-weight:600;color:#fff;
+    background:#1565c0;border:0;border-radius:9px;cursor:pointer}} button:hover{{background:#0d47a1}}
+  .erro{{color:#c62828;font-size:14px;margin:14px 0 0}}
+</style></head>
+<body>
+  <div class="cartao">
+    <div class="logo">📊</div>
+    <h1>CRM Dashboard</h1>
+    <small>Hai Logistics</small>
+    {aviso}
+    <form method="post" action="/login">
+      <input type="password" name="senha" placeholder="Digite a senha" autofocus required />
+      <button type="submit">Entrar</button>
+    </form>
+  </div>
+</body></html>"""
+    return HTMLResponse(html, status_code=401 if erro else 200)
+
+
 @app.middleware("http")
 async def proteger_com_senha(request, call_next):
-    """Pede usuário e senha antes de mostrar o painel (só quando PAINEL_SENHA está definida).
+    """Exige a senha antes de mostrar o painel (quando PAINEL_SENHA está definida).
 
-    Localmente PAINEL_SENHA fica vazia -> não pede nada. Na nuvem (Render) ela é
-    definida -> o navegador mostra a janelinha de login.
+    A própria tela de login (/login) é liberada. Quem não estiver logado é mandado
+    para ela; chamadas internas de dados (/api/...) respondem 401.
     """
-    if PAINEL_SENHA:
-        cabecalho = request.headers.get("Authorization", "")
-        autorizado = False
-        if cabecalho.startswith("Basic "):
-            try:
-                usuario, _, senha = base64.b64decode(cabecalho[6:]).decode("utf-8").partition(":")
-                autorizado = (
-                    secrets.compare_digest(usuario, PAINEL_USUARIO)
-                    and secrets.compare_digest(senha, PAINEL_SENHA)
-                )
-            except Exception:
-                autorizado = False
-        if not autorizado:
-            return Response(
-                status_code=401,
-                headers={"WWW-Authenticate": 'Basic realm="CRM Dashboard - Hai Logistics"'},
-            )
-    return await call_next(request)
+    if not PAINEL_SENHA:
+        return await call_next(request)
+    caminho = request.url.path
+    if caminho == "/login" or _logado(request):
+        return await call_next(request)
+    if caminho.startswith("/api/"):
+        return Response(status_code=401)
+    return RedirectResponse("/login")
+
+
+@app.get("/login")
+def login_pagina():
+    return _pagina_login()
+
+
+@app.post("/login")
+async def login_enviar(request: Request):
+    corpo = (await request.body()).decode("utf-8", "ignore")
+    senha = parse_qs(corpo).get("senha", [""])[0]
+    if secrets.compare_digest(senha, PAINEL_SENHA):
+        resp = RedirectResponse("/", status_code=303)
+        resp.set_cookie(
+            COOKIE_LOGIN, SELO_LOGIN,
+            max_age=60 * 60 * 24 * 30,  # fica logado por 30 dias
+            httponly=True, samesite="lax",
+        )
+        return resp
+    return _pagina_login(erro=True)
 
 
 def _mes_atual() -> str:
