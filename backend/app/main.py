@@ -834,6 +834,18 @@ def relatorio_semanal(chave: str = ""):
     toda segunda às 08:00. Protegido por chave secreta (RELATORIO_CRON_CHAVE no .env)."""
     if not RELATORIO_CRON_CHAVE or not secrets.compare_digest(chave, RELATORIO_CRON_CHAVE):
         return Response(status_code=403)
+    # O Render Free "dorme" e acorda com o banco vazio (ele se reconstrói na
+    # sincronização que roda no startup). Espera os dados chegarem antes de
+    # enviar — senão o relatório de segunda sairia zerado.
+    for _ in range(48):  # espera até ~4 minutos
+        db = SessionLocal()
+        try:
+            tem_dados = db.query(Deal).first() is not None
+        finally:
+            db.close()
+        if tem_dados:
+            break
+        _time.sleep(5)
     try:
         ok, msg = _gerar_e_enviar_relatorio()
         return {"ok": ok, "mensagem": msg}
