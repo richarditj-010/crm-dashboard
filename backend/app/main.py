@@ -25,7 +25,7 @@ from app.config import (
 from app.db.database import init_db, SessionLocal
 from app.db.models import Deal, User, DealStage, Activity, SyncLog
 from app.sync import sincronizar
-from app import emailer
+from app import emailer, pdf_relatorio
 
 FUSO_BR = timezone(timedelta(hours=-3))
 
@@ -633,11 +633,13 @@ def _montar_relatorio_md(m) -> str:
     return "\n".join(L)
 
 
-def _resumo_email(m) -> str:
-    """Monta o texto PRONTO PARA COLAR NO WHATSAPP (formato fixo), preenchido com os
-    números reais da semana. Tom profissional e objetivo. O relatório completo vai no
-    anexo .md. Modelo aprovado pelo Richard em 02/07/2026 (sem IA paga)."""
-    hoje = datetime.now(FUSO_BR).strftime("%d/%m")
+def _prioridades_semana(m):
+    """Escolhe as 3 prioridades da semana + a "ação da semana" a partir dos números.
+    Cada prioridade candidata recebe um peso de urgência calculado dos próprios dados;
+    as 3 de maior peso entram — por isso o conteúdo muda conforme o CRM muda.
+    Usada no corpo do email E no PDF anexo (os dois contam a mesma história).
+    Retorna (lista com 3 textos, texto da ação da semana)."""
+    agora = datetime.now(FUSO_BR)
     paradas15_total = sum(q for _, q in m["paradas15"])
 
     # Conta negociações abertas por etapa procurando palavras-chave no nome da etapa.
@@ -645,37 +647,78 @@ def _resumo_email(m) -> str:
         return sum(e["qtd"] for e in m["por_etapa"]
                    if any(c in e["etapa"].lower() for c in chaves))
     n_fechamento = qtd_etapa("fech")
-    n_proposta = qtd_etapa("propost")
+    n_proposta = qtd_etapa("proposta enviada") or qtd_etapa("propost")
+    n_visita = qtd_etapa("visita", "reuni")
+    n_recuperacao = qtd_etapa("recupera")
+    n_entrada = qtd_etapa("entrada", "contato feito")
 
-    L = []
-    L.append(f"📊 CRM — Semana {hoje}")
-    L.append("")
-    L.append("*Visão geral*")
-    L.append(f"{m['abertas']} negociações em aberto")
-    L.append(f"{m['ganhas_mes']} vendas fechadas no mês")
-    L.append(f"{paradas15_total} negociações paradas há mais de 15 dias (sem nenhuma atividade)")
-    L.append("")
-    L.append("*3 prioridades da semana*")
-    L.append("1️⃣ Retomar as negociações paradas — cada vendedor tem dezenas de "
-             "oportunidades sem movimentação; o foco esta semana é dar andamento ou "
-             "encerrar o que não tem futuro")
+    candidatas = []
+    if paradas15_total:
+        maior = max(m["paradas15"], key=lambda x: x[1])
+        extra = (f" (maior volume: {maior[0].split()[0]}, com {maior[1]})"
+                 if maior[1] >= 30 else "")
+        candidatas.append((paradas15_total * 1.0, "paradas",
+                           f"Retomar as {paradas15_total} negociações paradas há mais de "
+                           f"15 dias{extra} — dar andamento ou encerrar o que não tem futuro"))
     if n_fechamento:
-        L.append(f"2️⃣ Avançar as {n_fechamento} negociações em etapa de Fechamento — "
-                 f"são as mais próximas de virar venda")
-    else:
-        L.append("2️⃣ Avançar as negociações mais quentes — as mais próximas de virar venda")
+        candidatas.append((n_fechamento * 40.0, "fechamento",
+                           f"Avançar as {n_fechamento} negociações em Fechamento — "
+                           f"são as mais próximas de virar venda"))
+    if m["ganhas_mes"] == 0 and agora.day >= 10:
+        candidatas.append((120.0, "sem_venda",
+                           f"Destravar a primeira venda do mês — já estamos no dia "
+                           f"{agora.day} e nenhum fechamento foi registrado"))
     if n_proposta:
-        L.append(f"3️⃣ Ativar as {n_proposta} propostas enviadas — cliente com proposta "
-                 f"na mão precisa de follow-up agora")
-    else:
-        L.append("3️⃣ Fazer follow-up das propostas enviadas — cliente com proposta na mão "
-                 "precisa de retorno agora")
-    L.append("")
-    L.append("*Ação desta semana*")
-    L.append("Atualizem o status de cada negociação no CRM até sexta-feira. Registre o que "
-             "foi feito, o próximo passo e a data prevista. Sem registro, não existe.")
+        candidatas.append((n_proposta * 10.0, "propostas",
+                           f"Ativar as {n_proposta} propostas enviadas — cliente com "
+                           f"proposta na mão precisa de follow-up agora"))
+    if n_visita:
+        candidatas.append((n_visita * 12.0, "visitas",
+                           f"Realizar (e registrar) as {n_visita} visitas/reuniões "
+                           f"agendadas — é a etapa que gera proposta"))
+    if n_recuperacao:
+        candidatas.append((n_recuperacao * 6.0, "recuperacao",
+                           f"Trabalhar as {n_recuperacao} negociações em Recuperação — "
+                           f"clientes que já demonstraram interesse antes"))
+    if n_entrada:
+        candidatas.append((n_entrada * 3.0, "entrada",
+                           f"Qualificar os {n_entrada} contatos em Entrada/Contato feito — "
+                           f"decidir rápido quem vira oportunidade de verdade"))
 
-    # --- Pontos de atenção (gerados por regras a partir dos dados) ---
+    candidatas.sort(key=lambda c: c[0], reverse=True)
+    top3 = candidatas[:3]
+    while len(top3) < 3:  # garantia: sempre 3 prioridades, mesmo com CRM vazio
+        top3.append((0.0, "registro",
+                     "Manter o CRM atualizado — toda negociação com próximo passo "
+                     "e data definidos"))
+
+    # A "ação da semana" acompanha a prioridade nº 1.
+    ACOES = {
+        "paradas": "Atualizem o status de cada negociação parada até sexta-feira: "
+                   "registre o que foi feito, o próximo passo e a data prevista. "
+                   "Sem registro, não existe.",
+        "fechamento": "Cada negociação em Fechamento deve terminar a semana com "
+                      "definição: ganhou, perdeu ou data de decisão marcada no CRM.",
+        "sem_venda": "Cada vendedor escolhe a negociação mais quente da própria carteira "
+                     "e concentra esforço nela — o objetivo é sair do zero ainda esta semana.",
+        "propostas": "Todo cliente com proposta na mão deve receber um contato até "
+                     "sexta — com o retorno registrado no CRM.",
+        "visitas": "Confirmar e realizar as visitas/reuniões da semana, registrando "
+                   "o resultado de cada uma no CRM.",
+        "recuperacao": "Retomar contato com os clientes em Recuperação e registrar "
+                       "a resposta de cada um no CRM.",
+        "entrada": "Classificar os contatos novos até sexta: avançar os promissores "
+                   "e encerrar os sem perfil.",
+        "registro": "Atualizem o status de cada negociação no CRM até sexta-feira. "
+                    "Registre o que foi feito, o próximo passo e a data prevista. "
+                    "Sem registro, não existe.",
+    }
+    return [texto for _, _, texto in top3], ACOES[top3[0][1]]
+
+
+def _pontos_atencao(m):
+    """Alertas gerados por regras a partir dos dados (sem IA). Só entram quando
+    a condição acontece de verdade — semana sem problema, seção sem alerta."""
     atencao = []
     media_valor = m["pipeline_aberto"] / m["abertas"] if m["abertas"] else 0
     if media_valor < 1000:
@@ -698,7 +741,35 @@ def _resumo_email(m) -> str:
         nome, qtd = top_z[0]
         atencao.append(f"{nome.split()[0]} tem {qtd} negociações abertas com R$ 0 e 0 vendas "
                        f"— vale uma conversa individual antes de cobrar no grupo.")
+    return atencao
 
+
+def _resumo_email(m) -> str:
+    """Monta o texto PRONTO PARA COLAR NO WHATSAPP. A ESTRUTURA é sempre a mesma
+    (visão geral → 3 prioridades → ação da semana → pontos de atenção), mas as
+    prioridades e a ação são ESCOLHIDAS A CADA ENVIO conforme os números da semana:
+    o que estiver mais crítico no CRM sobe pro topo. (Pedido do Richard em
+    02/07/2026: padrão fixo de formato, conteúdo variável.)"""
+    hoje = datetime.now(FUSO_BR).strftime("%d/%m")
+    paradas15_total = sum(q for _, q in m["paradas15"])
+    prioridades, acao = _prioridades_semana(m)
+
+    L = []
+    L.append(f"📊 CRM — Semana {hoje}")
+    L.append("")
+    L.append("*Visão geral*")
+    L.append(f"{m['abertas']} negociações em aberto")
+    L.append(f"{m['ganhas_mes']} vendas fechadas no mês")
+    L.append(f"{paradas15_total} negociações paradas há mais de 15 dias (sem nenhuma atividade)")
+    L.append("")
+    L.append("*3 prioridades da semana*")
+    for emoji, texto in zip(["1️⃣", "2️⃣", "3️⃣"], prioridades):
+        L.append(f"{emoji} {texto}")
+    L.append("")
+    L.append("*Ação desta semana*")
+    L.append(acao)
+
+    atencao = _pontos_atencao(m)
     if atencao:
         L.append("")
         L.append("⚠️ Pontos de atenção")
@@ -707,7 +778,7 @@ def _resumo_email(m) -> str:
 
     L.append("")
     L.append("——")
-    L.append("(Relatório completo com todas as tabelas no arquivo anexo.)")
+    L.append("(Resumo executivo em PDF no anexo.)")
     return "\n".join(L)
 
 
@@ -722,11 +793,12 @@ def _gerar_e_enviar_relatorio():
     finally:
         db.close()
     corpo = _resumo_email(m)
-    texto_md = _montar_relatorio_md(m)
+    prioridades, acao = _prioridades_semana(m)
+    anexo_pdf = pdf_relatorio.gerar_pdf(m, prioridades, acao, _pontos_atencao(m))
     hoje = datetime.now(FUSO_BR).strftime("%d/%m/%Y")
-    nome_arq = "relatorio-crm-" + datetime.now(FUSO_BR).strftime("%Y-%m-%d") + ".md"
+    nome_arq = "relatorio-crm-" + datetime.now(FUSO_BR).strftime("%Y-%m-%d") + ".pdf"
     assunto = f"Relatório Comercial CRM — Hai Logistics ({hoje})"
-    destinos = emailer.enviar_relatorio_email(assunto, corpo, nome_arq, texto_md)
+    destinos = emailer.enviar_relatorio_email(assunto, corpo, nome_arq, anexo_pdf)
     return True, "Relatório enviado para " + ", ".join(destinos) + "."
 
 

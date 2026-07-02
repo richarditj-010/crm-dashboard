@@ -24,8 +24,8 @@ APP_HOST = os.getenv("APP_HOST", "127.0.0.1").strip()
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 
 # --- Envio do relatório por email ---
-# Servidor de saída (Microsoft 365 por padrão). Só é preciso mexer se trocar de provedor.
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.office365.com").strip()
+# Servidor de saída (Gmail por padrão — o M365 não aceita mais envio simples por SMTP).
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com").strip()
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 # Conta que ENVIA o email e sua "senha de aplicativo" (preencher no .env).
 SMTP_USER = os.getenv("SMTP_USER", "").strip()

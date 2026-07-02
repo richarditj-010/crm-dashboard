@@ -26,7 +26,7 @@ def enviar_relatorio_email(assunto, corpo_texto, anexo_nome=None, anexo_conteudo
     """Envia o relatório por email. Levanta exceção se falhar (quem chama trata).
 
     - corpo_texto: resumo legível (texto simples) que aparece no corpo do email.
-    - anexo_nome / anexo_conteudo: arquivo .md com o relatório completo (opcional).
+    - anexo_nome / anexo_conteudo: anexo opcional — bytes de um .pdf ou texto de um .md.
     Retorna a lista de destinatários para quem foi enviado.
     """
     destinos = destinatarios()
@@ -37,10 +37,15 @@ def enviar_relatorio_email(assunto, corpo_texto, anexo_nome=None, anexo_conteudo
     msg.set_content(corpo_texto)
 
     if anexo_nome and anexo_conteudo is not None:
-        msg.add_attachment(
-            anexo_conteudo.encode("utf-8"),
-            maintype="text", subtype="markdown", filename=anexo_nome,
-        )
+        if isinstance(anexo_conteudo, bytes):
+            dados = anexo_conteudo
+        else:
+            dados = anexo_conteudo.encode("utf-8")
+        if anexo_nome.lower().endswith(".pdf"):
+            maintype, subtype = "application", "pdf"
+        else:
+            maintype, subtype = "text", "markdown"
+        msg.add_attachment(dados, maintype=maintype, subtype=subtype, filename=anexo_nome)
 
     # STARTTLS (porta 587) é o padrão do Microsoft 365 e da maioria dos provedores.
     with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as servidor:

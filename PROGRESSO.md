@@ -1,7 +1,7 @@
 # 📋 PROGRESSO DO PROJETO — CRM Dashboard (Hai Logistics)
 
 > Documento vivo: atualizado a cada passo. Serve para você saber **o que já está pronto**,
-> **onde paramos** e **o que vem a seguir**. Última atualização: **11/06/2026**.
+> **onde paramos** e **o que vem a seguir**. Última atualização: **02/07/2026**.
 
 ---
 
@@ -75,11 +75,23 @@ exatamente. A diferença de 2 (em ~1480) está sendo investigada — não afeta 
 
 ---
 
-## 🔑 Pendências que dependem de você
+## 🔑 Pendências (para o envio semanal funcionar na NUVEM)
 
-1. **Chave da Claude (para a aba de IA / "perguntar")** — é o que permite o chefe
-   digitar perguntas ("o que a Camila fez hoje?") e receber resposta. É um cadastro
-   na Anthropic (custo baixo por uso). Quando tiver, é só me passar.
+O envio por email já funciona **no PC do Richard** (testado 02/07/2026 ✅). Para a nuvem
+(Render) enviar sozinha toda segunda às 08:00, faltam 2 passos:
+
+1. **Cadastrar as credenciais do Gmail no Render** — em render.com → serviço
+   `crm-dashboard` → **Environment** → adicionar:
+   `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER=disparoemailrichard@gmail.com`,
+   `SMTP_PASSWORD=(a senha de aplicativo de 16 letras)`,
+   `RELATORIO_EMAIL_TO=richard@hailogistics.com.br` e `RELATORIO_CRON_CHAVE=(a chave
+   que está no .env do PC)`.
+2. **Criar o "despertador" das segundas** — conta gratuita no cron-job.org chamando
+   `https://crm-dashboard-x8v6.onrender.com/api/relatorio-semanal?chave=A_CHAVE`
+   toda segunda às 08:00 (também serve pra acordar o Render, que dorme no plano Free).
+3. **No Outlook do Richard:** adicionar `disparoemailrichard@gmail.com` aos
+   **Remetentes Confiáveis** (Configurações → Email → Lixo eletrônico), pra garantir
+   que o relatório nunca caia no lixo eletrônico.
 
 ---
 
@@ -136,6 +148,16 @@ Daiane Cristina Pereira, Camila Peres, Simeão Batista (+ Natalia Otero, sem neg
 
 ## 🗒️ Histórico (changelog)
 
+- **02/07/2026** — **Relatório semanal por email FUNCIONANDO** (testado de verdade, 2 envios
+  reais recebidos). Como o Microsoft 365 não permite mais envio simples (SMTP), foi criada
+  uma conta Gmail só para disparos: `disparoemailrichard@gmail.com` (senha de aplicativo no
+  `.env`). Destino: `richard@hailogistics.com.br`. O **corpo do email** mantém o formato
+  aprovado (visão geral → 3 prioridades → ação da semana → pontos de atenção), mas as
+  prioridades agora são **escolhidas a cada envio** conforme os números do CRM (o mais
+  crítico sobe pro topo). O **anexo** virou um **PDF de 1 página** (resumo executivo:
+  cartões de números, prioridades, tabela da equipe), gerado na hora com dados atualizados
+  (biblioteca fpdf2). No painel, o botão de email virou **"📄 Baixar Relatório Geral"**
+  (a Elaine pode baixar e mandar manualmente se precisar). Git reinstalado no PC.
 - **22/06/2026** — **Login refeito**: trocada a janelinha do navegador (usuário+senha) por
   uma **tela própria só com a senha** (`BOSS`). Passou a **pedir a senha a cada sessão**
   (fecha/abre o navegador → pede de novo), no PC e no iPad. Testado e funcionando nos dois.
