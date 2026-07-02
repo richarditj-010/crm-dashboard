@@ -3,6 +3,7 @@ Backend FastAPI do CRM Dashboard.
 - Serve a página do dashboard (frontend)
 - Expõe endpoints internos que entregam os dados já tratados (do SQLite)
 """
+import base64
 import hashlib
 import secrets
 import threading
@@ -127,9 +128,10 @@ async def proteger_com_senha(request, call_next):
     if not PAINEL_SENHA:
         return await call_next(request)
     caminho = request.url.path
-    # A rota do envio semanal é chamada por um agendador externo (sem login no navegador):
-    # ela se protege sozinha com uma chave secreta, então passa direto por aqui.
-    if caminho == "/login" or caminho == "/api/relatorio-semanal" or _logado(request):
+    # As rotas do envio semanal são chamadas por robôs externos (sem login no navegador):
+    # elas se protegem sozinhas com uma chave secreta, então passam direto por aqui.
+    if (caminho in ("/login", "/api/relatorio-semanal", "/api/relatorio-semanal-dados")
+            or _logado(request)):
         return await call_next(request)
     if caminho.startswith("/api/"):
         return Response(status_code=401)
@@ -851,6 +853,36 @@ def relatorio_semanal(chave: str = ""):
         return {"ok": ok, "mensagem": msg}
     except Exception as e:
         return {"ok": False, "mensagem": f"Falha no envio semanal: {e}"}
+
+
+@app.get("/api/relatorio-semanal-dados")
+def relatorio_semanal_dados(chave: str = ""):
+    """Entrega o relatório PRONTO (texto do email + PDF) para o robô do Google
+    (Apps Script) enviar pelo próprio Gmail — o Render Free bloqueia envio direto
+    por SMTP. Protegido pela mesma chave secreta do envio semanal."""
+    if not RELATORIO_CRON_CHAVE or not secrets.compare_digest(chave, RELATORIO_CRON_CHAVE):
+        return Response(status_code=403)
+    db = SessionLocal()
+    try:
+        if db.query(Deal).first() is None:
+            # Painel acabou de acordar e ainda está sincronizando —
+            # responde rápido e o robô tenta de novo em alguns segundos.
+            return {"pronto": False}
+        m = _coletar_metricas(db)
+    finally:
+        db.close()
+    corpo = _resumo_email(m)
+    prioridades, acao = _prioridades_semana(m)
+    anexo_pdf = pdf_relatorio.gerar_pdf(m, prioridades, acao, _pontos_atencao(m))
+    agora = datetime.now(FUSO_BR)
+    return {
+        "pronto": True,
+        "assunto": f"Relatório Comercial CRM — Hai Logistics ({agora.strftime('%d/%m/%Y')})",
+        "corpo": corpo,
+        "nome_arquivo": "relatorio-crm-" + agora.strftime("%Y-%m-%d") + ".pdf",
+        "pdf_base64": base64.b64encode(anexo_pdf).decode("ascii"),
+        "destinatarios": emailer.destinatarios(),
+    }
 
 
 @app.post("/api/ia")
