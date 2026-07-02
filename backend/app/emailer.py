@@ -58,13 +58,20 @@ def enviar_relatorio_email(assunto, corpo_texto, anexo_nome=None, anexo_conteudo
 
     socket.getaddrinfo = _ipv4_apenas
     try:
-        # STARTTLS (porta 587) é o padrão do Gmail e da maioria dos provedores.
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as servidor:
-            servidor.ehlo()
-            servidor.starttls()
-            servidor.ehlo()
-            servidor.login(SMTP_USER, SMTP_PASSWORD)
-            servidor.send_message(msg)
+        try:
+            # STARTTLS (porta 587) é o padrão do Gmail e da maioria dos provedores.
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as servidor:
+                servidor.ehlo()
+                servidor.starttls()
+                servidor.ehlo()
+                servidor.login(SMTP_USER, SMTP_PASSWORD)
+                servidor.send_message(msg)
+        except OSError:
+            # Porta 587 bloqueada (alguns provedores de nuvem fazem isso) —
+            # tenta a porta 465, que usa TLS direto.
+            with smtplib.SMTP_SSL(SMTP_HOST, 465, timeout=30) as servidor:
+                servidor.login(SMTP_USER, SMTP_PASSWORD)
+                servidor.send_message(msg)
     finally:
         socket.getaddrinfo = getaddrinfo_original
 
