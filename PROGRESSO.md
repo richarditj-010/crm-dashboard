@@ -75,23 +75,32 @@ exatamente. A diferença de 2 (em ~1480) está sendo investigada — não afeta 
 
 ---
 
-## 🔑 Pendências (para o envio semanal funcionar na NUVEM)
+## ✅ Envio automático de segunda — FUNCIONANDO (concluído 02/07/2026)
 
-O envio por email já funciona **no PC do Richard** (testado 02/07/2026 ✅). Para a nuvem
-(Render) enviar sozinha toda segunda às 08:00, faltam 2 passos:
+**Como funciona (nada depende de PC ligado):**
 
-1. **Cadastrar as credenciais do Gmail no Render** — em render.com → serviço
-   `crm-dashboard` → **Environment** → adicionar:
-   `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER=disparoemailrichard@gmail.com`,
-   `SMTP_PASSWORD=(a senha de aplicativo de 16 letras)`,
-   `RELATORIO_EMAIL_TO=richard@hailogistics.com.br` e `RELATORIO_CRON_CHAVE=(a chave
-   que está no .env do PC)`.
-2. **Criar o "despertador" das segundas** — conta gratuita no cron-job.org chamando
-   `https://crm-dashboard-x8v6.onrender.com/api/relatorio-semanal?chave=A_CHAVE`
-   toda segunda às 08:00 (também serve pra acordar o Render, que dorme no plano Free).
-3. **No Outlook do Richard:** adicionar `disparoemailrichard@gmail.com` aos
-   **Remetentes Confiáveis** (Configurações → Email → Lixo eletrônico), pra garantir
-   que o relatório nunca caia no lixo eletrônico.
+1. Toda **segunda entre 08h e 09h**, um robô do Google (**Apps Script**, projeto
+   "envio email crm segunda as 08" dentro da conta `disparoemailrichard@gmail.com`)
+   acorda sozinho.
+2. Ele chama o painel no Render (`/api/relatorio-semanal-dados?chave=...`), que devolve
+   o relatório PRONTO: texto do email + PDF com os dados recém-sincronizados
+   (o robô insiste por ~4 min enquanto o painel Free acorda).
+3. O robô envia o email **pelo próprio Gmail** para `richard@hailogistics.com.br`
+   (o Render Free bloqueia envio direto por SMTP — por isso o Gmail é quem envia).
+4. O remetente está nos **Remetentes Confiáveis** do Outlook do Richard → cai direto
+   na caixa de entrada.
+
+**Peças de apoio:**
+- **cron-job.org** (conta do Richard): job "Relatorio CRM segunda 08h", `0 8 * * 1`,
+  chama `/api/relatorio-semanal?chave=...`. Hoje serve de **despertador extra** do
+  painel às 08h em ponto (o envio SMTP dele falha no Render, sem efeito colateral).
+- **Render → Environment** tem: PAINEL_SENHA, RD_CRM_TOKEN, SMTP_HOST, SMTP_PORT,
+  SMTP_USER, SMTP_PASSWORD, RELATORIO_EMAIL_TO, RELATORIO_CRON_CHAVE.
+- **Testes reais feitos em 02/07/2026:** envio do PC ✅, envio pelo robô do Google ✅
+  (execução concluída sem erro, email recebido).
+
+**Para mudar o destinatário no futuro:** trocar `RELATORIO_EMAIL_TO` no Render
+(Environment) — pode ter vários emails separados por vírgula.
 
 ---
 
