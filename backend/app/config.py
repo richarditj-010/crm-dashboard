@@ -23,6 +23,20 @@ PAINEL_SENHA = os.getenv("PAINEL_SENHA", "BOSS").strip()
 APP_HOST = os.getenv("APP_HOST", "127.0.0.1").strip()
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 
+# --- Envio do relatório por email ---
+# Servidor de saída (Microsoft 365 por padrão). Só é preciso mexer se trocar de provedor.
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.office365.com").strip()
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+# Conta que ENVIA o email e sua "senha de aplicativo" (preencher no .env).
+SMTP_USER = os.getenv("SMTP_USER", "").strip()
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
+# De quem o email aparece como remetente (padrão: a própria conta de envio).
+SMTP_FROM = os.getenv("SMTP_FROM", "").strip() or SMTP_USER
+# Para quem vai o relatório (pode ter vários, separados por vírgula).
+RELATORIO_EMAIL_TO = os.getenv("RELATORIO_EMAIL_TO", "richard@hailogistics.com.br").strip()
+# Chave secreta que o "despertador" externo (cron) usa para disparar o envio semanal.
+RELATORIO_CRON_CHAVE = os.getenv("RELATORIO_CRON_CHAVE", "").strip()
+
 # Ex-funcionários (não aparecem como vendedores ativos nos rankings/filtros/relatórios).
 # Para incluir/remover alguém no futuro, basta editar esta lista (nome como aparece no CRM).
 EX_FUNCIONARIOS = [

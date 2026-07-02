@@ -171,14 +171,6 @@ function mostrarPergunta(id) {
     <div class="tabela-wrap"><table class="tabela"><thead><tr>${cab}</tr></thead><tbody>${corpo}</tbody></table></div>`;
 }
 
-function baixarRelatorio() {
-  const status = document.getElementById("rel-status");
-  status.textContent = " Baixando…";
-  // abre o endpoint que devolve o arquivo .md para download
-  window.location.href = "/api/relatorio-geral";
-  setTimeout(() => { status.textContent = " ✅ Baixado! Veja na pasta de Downloads."; }, 1200);
-}
-
 // ===== Botão atualizar =====
 document.getElementById("btn-atualizar").addEventListener("click", async () => {
   const btn = document.getElementById("btn-atualizar");

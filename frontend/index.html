@@ -114,11 +114,10 @@
     <!-- PERGUNTAS RAPIDAS -->
     <section id="aba-perguntas" class="aba oculta">
       <section class="panel destaque-relatorio">
-        <h2>📥 Relatório Geral (para usar com a Claude)</h2>
-        <p class="muted">Baixa um arquivo com todos os números da equipe. Depois é só abrir uma
-          conversa com a Claude, anexar/colar esse arquivo e perguntar o que quiser — ela lê tudo e responde.</p>
-        <button class="btn verde grande" onclick="baixarRelatorio()">📥 Baixar Relatório Geral</button>
-        <span id="rel-status" class="muted"></span>
+        <h2>📄 Relatório Geral</h2>
+        <p class="muted">Baixa um arquivo com o relatório completo do dia (todos os números do funil,
+          vendedores e atividades). É só anexar no email e enviar.</p>
+        <button class="btn verde grande" onclick="window.location.href='/api/relatorio-geral'">📄 Baixar Relatório Geral</button>
       </section>
 
       <section class="panel">

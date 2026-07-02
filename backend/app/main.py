@@ -20,11 +20,12 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import (
     FRONTEND_DIR, ANTHROPIC_API_KEY, eh_ex_funcionario, cargo_de, _normaliza,
-    PAINEL_SENHA,
+    PAINEL_SENHA, RELATORIO_CRON_CHAVE,
 )
 from app.db.database import init_db, SessionLocal
 from app.db.models import Deal, User, DealStage, Activity, SyncLog
 from app.sync import sincronizar
+from app import emailer
 
 FUSO_BR = timezone(timedelta(hours=-3))
 
@@ -126,7 +127,9 @@ async def proteger_com_senha(request, call_next):
     if not PAINEL_SENHA:
         return await call_next(request)
     caminho = request.url.path
-    if caminho == "/login" or _logado(request):
+    # A rota do envio semanal é chamada por um agendador externo (sem login no navegador):
+    # ela se protege sozinha com uma chave secreta, então passa direto por aqui.
+    if caminho == "/login" or caminho == "/api/relatorio-semanal" or _logado(request):
         return await call_next(request)
     if caminho.startswith("/api/"):
         return Response(status_code=401)
@@ -570,15 +573,9 @@ def perguntas_rapidas():
     return {"gerado_em": m["gerado_em"], "blocos": blocos}
 
 
-@app.get("/api/relatorio-geral")
-def relatorio_geral():
-    """Gera um relatório de texto com TUDO, para baixar e colar numa conversa com a Claude."""
-    db = SessionLocal()
-    try:
-        m = _coletar_metricas(db)
-    finally:
-        db.close()
-
+def _montar_relatorio_md(m) -> str:
+    """Monta o texto Markdown do Relatório Geral a partir das métricas já coletadas.
+    Usado tanto no download quanto no envio por email — assim o conteúdo fica sempre igual."""
     L = []
     L.append("# RELATÓRIO GERAL — CRM Hai Logistics")
     L.append(f"Gerado em: {m['gerado_em']}")
@@ -633,12 +630,143 @@ def relatorio_geral():
     tabela("Negociações criadas por mês", ["Mês", "Quantidade"],
            [[x["mes"], x["qtd"]] for x in m["por_mes"]])
 
-    texto = "\n".join(L)
+    return "\n".join(L)
+
+
+def _resumo_email(m) -> str:
+    """Monta o texto PRONTO PARA COLAR NO WHATSAPP (formato fixo), preenchido com os
+    números reais da semana. Tom profissional e objetivo. O relatório completo vai no
+    anexo .md. Modelo aprovado pelo Richard em 02/07/2026 (sem IA paga)."""
+    hoje = datetime.now(FUSO_BR).strftime("%d/%m")
+    paradas15_total = sum(q for _, q in m["paradas15"])
+
+    # Conta negociações abertas por etapa procurando palavras-chave no nome da etapa.
+    def qtd_etapa(*chaves):
+        return sum(e["qtd"] for e in m["por_etapa"]
+                   if any(c in e["etapa"].lower() for c in chaves))
+    n_fechamento = qtd_etapa("fech")
+    n_proposta = qtd_etapa("propost")
+
+    L = []
+    L.append(f"📊 CRM — Semana {hoje}")
+    L.append("")
+    L.append("*Visão geral*")
+    L.append(f"{m['abertas']} negociações em aberto")
+    L.append(f"{m['ganhas_mes']} vendas fechadas no mês")
+    L.append(f"{paradas15_total} negociações paradas há mais de 15 dias (sem nenhuma atividade)")
+    L.append("")
+    L.append("*3 prioridades da semana*")
+    L.append("1️⃣ Retomar as negociações paradas — cada vendedor tem dezenas de "
+             "oportunidades sem movimentação; o foco esta semana é dar andamento ou "
+             "encerrar o que não tem futuro")
+    if n_fechamento:
+        L.append(f"2️⃣ Avançar as {n_fechamento} negociações em etapa de Fechamento — "
+                 f"são as mais próximas de virar venda")
+    else:
+        L.append("2️⃣ Avançar as negociações mais quentes — as mais próximas de virar venda")
+    if n_proposta:
+        L.append(f"3️⃣ Ativar as {n_proposta} propostas enviadas — cliente com proposta "
+                 f"na mão precisa de follow-up agora")
+    else:
+        L.append("3️⃣ Fazer follow-up das propostas enviadas — cliente com proposta na mão "
+                 "precisa de retorno agora")
+    L.append("")
+    L.append("*Ação desta semana*")
+    L.append("Atualizem o status de cada negociação no CRM até sexta-feira. Registre o que "
+             "foi feito, o próximo passo e a data prevista. Sem registro, não existe.")
+
+    # --- Pontos de atenção (gerados por regras a partir dos dados) ---
+    atencao = []
+    media_valor = m["pipeline_aberto"] / m["abertas"] if m["abertas"] else 0
+    if media_valor < 1000:
+        atencao.append(f"O pipeline total de {_moeda(m['pipeline_aberto'])} é baixo para "
+                       f"{m['abertas']} negociações abertas — boa parte provavelmente está "
+                       f"sem valor preenchido, o que dificulta priorizar.")
+
+    ganhas_por_vend = {c["vendedor"]: c["ganhas"] for c in m["conversao"]}
+    zerados = [(nome, v["qtd"]) for nome, v in m["ab_vend"]
+               if v["valor"] < 1 and ganhas_por_vend.get(nome, 0) == 0 and v["qtd"] >= 20]
+    zerados.sort(key=lambda x: x[1], reverse=True)
+    top_z = zerados[:2]
+    total_z = sum(q for _, q in top_z)
+    if len(top_z) >= 2:
+        nomes = " e ".join(n.split()[0] for n, _ in top_z)
+        atencao.append(f"{nomes} têm juntas {total_z} negociações abertas com R$ 0 em "
+                       f"pipeline e 0 vendas — vale uma conversa individual antes de cobrar "
+                       f"publicamente no grupo.")
+    elif len(top_z) == 1:
+        nome, qtd = top_z[0]
+        atencao.append(f"{nome.split()[0]} tem {qtd} negociações abertas com R$ 0 e 0 vendas "
+                       f"— vale uma conversa individual antes de cobrar no grupo.")
+
+    if atencao:
+        L.append("")
+        L.append("⚠️ Pontos de atenção")
+        for a in atencao:
+            L.append(f"- {a}")
+
+    L.append("")
+    L.append("——")
+    L.append("(Relatório completo com todas as tabelas no arquivo anexo.)")
+    return "\n".join(L)
+
+
+def _gerar_e_enviar_relatorio():
+    """Gera o relatório e envia por email. Retorna (ok: bool, mensagem: str)."""
+    if not emailer.config_ok():
+        return False, ("Envio de email ainda não configurado. Faltam preencher "
+                       "SMTP_USER e SMTP_PASSWORD no arquivo .env.")
+    db = SessionLocal()
+    try:
+        m = _coletar_metricas(db)
+    finally:
+        db.close()
+    corpo = _resumo_email(m)
+    texto_md = _montar_relatorio_md(m)
+    hoje = datetime.now(FUSO_BR).strftime("%d/%m/%Y")
+    nome_arq = "relatorio-crm-" + datetime.now(FUSO_BR).strftime("%Y-%m-%d") + ".md"
+    assunto = f"Relatório Comercial CRM — Hai Logistics ({hoje})"
+    destinos = emailer.enviar_relatorio_email(assunto, corpo, nome_arq, texto_md)
+    return True, "Relatório enviado para " + ", ".join(destinos) + "."
+
+
+@app.get("/api/relatorio-geral")
+def relatorio_geral():
+    """Gera o relatório de texto com TUDO, para baixar e colar numa conversa com a Claude."""
+    db = SessionLocal()
+    try:
+        m = _coletar_metricas(db)
+    finally:
+        db.close()
+    texto = _montar_relatorio_md(m)
     nome_arq = "relatorio-crm-" + datetime.now(FUSO_BR).strftime("%Y-%m-%d") + ".md"
     return PlainTextResponse(texto, headers={
         "Content-Disposition": f'attachment; filename="{nome_arq}"',
         "Content-Type": "text/markdown; charset=utf-8",
     })
+
+
+@app.post("/api/enviar-relatorio")
+def enviar_relatorio():
+    """Botão 'Enviar agora pro meu email' — dispara o envio na hora (dashboard logado)."""
+    try:
+        ok, msg = _gerar_e_enviar_relatorio()
+        return {"ok": ok, "mensagem": msg}
+    except Exception as e:
+        return {"ok": False, "mensagem": f"Não consegui enviar o email: {e}"}
+
+
+@app.get("/api/relatorio-semanal")
+def relatorio_semanal(chave: str = ""):
+    """Envio automático semanal — chamado por um agendador externo (ex.: cron-job.org)
+    toda segunda às 08:00. Protegido por chave secreta (RELATORIO_CRON_CHAVE no .env)."""
+    if not RELATORIO_CRON_CHAVE or not secrets.compare_digest(chave, RELATORIO_CRON_CHAVE):
+        return Response(status_code=403)
+    try:
+        ok, msg = _gerar_e_enviar_relatorio()
+        return {"ok": ok, "mensagem": msg}
+    except Exception as e:
+        return {"ok": False, "mensagem": f"Falha no envio semanal: {e}"}
 
 
 @app.post("/api/ia")
