@@ -5,6 +5,7 @@ Configurado por padrão para o Microsoft 365 (smtp.office365.com), mas funciona
 com qualquer provedor que aceite SMTP (basta ajustar as variáveis no .env).
 """
 import smtplib
+import socket
 from email.message import EmailMessage
 
 from app.config import (
@@ -47,12 +48,24 @@ def enviar_relatorio_email(assunto, corpo_texto, anexo_nome=None, anexo_conteudo
             maintype, subtype = "text", "markdown"
         msg.add_attachment(dados, maintype=maintype, subtype=subtype, filename=anexo_nome)
 
-    # STARTTLS (porta 587) é o padrão do Microsoft 365 e da maioria dos provedores.
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as servidor:
-        servidor.ehlo()
-        servidor.starttls()
-        servidor.ehlo()
-        servidor.login(SMTP_USER, SMTP_PASSWORD)
-        servidor.send_message(msg)
+    # Servidores de nuvem (ex.: Render) não têm rota IPv6, e o Gmail anuncia
+    # IPv6 primeiro — sem isto o envio na nuvem falha com "Network is
+    # unreachable". Força IPv4 só durante o envio e restaura no final.
+    getaddrinfo_original = socket.getaddrinfo
+
+    def _ipv4_apenas(host, port, family=0, *args, **kwargs):
+        return getaddrinfo_original(host, port, socket.AF_INET, *args, **kwargs)
+
+    socket.getaddrinfo = _ipv4_apenas
+    try:
+        # STARTTLS (porta 587) é o padrão do Gmail e da maioria dos provedores.
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as servidor:
+            servidor.ehlo()
+            servidor.starttls()
+            servidor.ehlo()
+            servidor.login(SMTP_USER, SMTP_PASSWORD)
+            servidor.send_message(msg)
+    finally:
+        socket.getaddrinfo = getaddrinfo_original
 
     return destinos
