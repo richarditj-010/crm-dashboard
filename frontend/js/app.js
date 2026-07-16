@@ -21,6 +21,13 @@ if (typeof Chart !== "undefined") {
   Chart.defaults.plugins.tooltip.boxWidth = 8;
   Chart.defaults.plugins.tooltip.boxHeight = 8;
   Chart.defaults.plugins.tooltip.usePointStyle = true;
+  Chart.defaults.animation = Object.assign({}, Chart.defaults.animation,
+    { duration: 700, easing: "easeOutQuart" });
+}
+
+// Barras entram em cascata (uma atrás da outra)
+function cascata(ctx) {
+  return ctx.type === "data" && ctx.mode === "default" ? ctx.dataIndex * 70 : 0;
 }
 
 // Eixo de valores "fantasma" (grid a 6%, sem borda) + eixo de categorias limpo
@@ -50,6 +57,32 @@ async function getJSON(url, opts) {
 const VAZIO_SVG = `<svg class="hai-bob" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>`;
 function vazio(texto) {
   return `<div class="vazio">${VAZIO_SVG}<span>${texto}</span></div>`;
+}
+
+// O usuário pediu menos movimento no sistema? Respeita.
+const REDUZ_MOVIMENTO = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Número que "conta" de 0 até o valor (dá vida aos cartões)
+function contarAte(el, alvo) {
+  if (REDUZ_MOVIMENTO || !isFinite(alvo)) { el.textContent = Number(alvo).toLocaleString("pt-BR"); return; }
+  const dur = 750, t0 = performance.now();
+  function passo(t) {
+    const p = Math.min(1, (t - t0) / dur);
+    const suave = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(alvo * suave).toLocaleString("pt-BR");
+    if (p < 1) requestAnimationFrame(passo);
+  }
+  requestAnimationFrame(passo);
+}
+
+// Anima os valores dos cartões: número puro conta até o valor; texto (R$, %) dá um "pop"
+function animarCartoes(container) {
+  container.querySelectorAll(".valor").forEach(el => {
+    const bruto = el.textContent.trim();
+    const n = Number(bruto.replace(/\./g, ""));
+    if (bruto !== "" && !isNaN(n) && /^[\d.]+$/.test(bruto)) contarAte(el, n);
+    else el.classList.add("hai-pop");
+  });
 }
 
 // Iniciais do vendedor (bolinha de avatar): "Camila Peres" -> "CP"
@@ -110,6 +143,7 @@ async function carregarHome() {
   contCards.querySelectorAll(".card").forEach((el, i) => {
     if (cards[i].vai) el.addEventListener("click", cards[i].vai);
   });
+  if (!carregarHome._animou) { animarCartoes(contCards); carregarHome._animou = true; }
 
   // Funil por etapa — clicar numa etapa abre Oportunidades filtrada nela
   const maxQtd = Math.max(1, ...d.por_etapa.map(e => e.quantidade));
@@ -196,8 +230,10 @@ async function carregarRelatorios() {
     { rotulo: "Em aberto", valor: g.abertas, cls: "azul" },
     { rotulo: "Taxa de conversão", valor: g.conversao + "%", cls: "azul" },
   ];
-  document.getElementById("rel-cards").innerHTML = cards.map(c =>
+  const contRel = document.getElementById("rel-cards");
+  contRel.innerHTML = cards.map(c =>
     `<div class="card"><div class="rotulo">${c.rotulo}</div><div class="valor ${c.cls}">${c.valor}</div></div>`).join("");
+  if (!carregarRelatorios._animou) { animarCartoes(contRel); carregarRelatorios._animou = true; }
   const maxConv = Math.max(1, ...d.por_vendedor.map(v => v.conversao));
   document.querySelector("#rel-tabela tbody").innerHTML = d.por_vendedor.map(v =>
     `<tr><td><span class="pessoa"><span class="avatar">${iniciais(v.vendedor)}</span>
@@ -214,7 +250,7 @@ async function carregarRelatorios() {
       datasets: [{ label: "Abertas", data: d.por_etapa.map(e => e.quantidade),
         backgroundColor: HAI.azul, hoverBackgroundColor: HAI.azulEscuro,
         borderRadius: 5, borderSkipped: "start", maxBarThickness: 22 }] },
-    options: { indexAxis: "y", responsive: true,
+    options: { indexAxis: "y", responsive: true, animation: { delay: cascata },
       plugins: { legend: { display: false } }, scales: eixos(true) },
   });
 
@@ -251,7 +287,7 @@ async function carregarRelatorios() {
       datasets: [{ label: "Abertas", data: d.por_vendedor.map(v => v.abertas),
         backgroundColor: HAI.azul, hoverBackgroundColor: HAI.azulEscuro,
         borderRadius: 5, borderSkipped: "start", maxBarThickness: 22 }] },
-    options: { indexAxis: "y", responsive: true,
+    options: { indexAxis: "y", responsive: true, animation: { delay: cascata },
       plugins: { legend: { display: false } }, scales: eixos(true) },
   });
 

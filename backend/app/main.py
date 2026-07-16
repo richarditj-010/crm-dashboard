@@ -138,13 +138,36 @@ _LOGIN_HTML = """<!DOCTYPE html>
   @keyframes hai-fade-up{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
   @keyframes hai-shake-k{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
   @keyframes hai-shimmer-sweep{0%{transform:translateX(-150%) skewX(-18deg)}100%{transform:translateX(250%) skewX(-18deg)}}
-  .topo{position:absolute;top:226px;left:38px}
-  .topo img{height:150px;width:auto;opacity:.97;filter:drop-shadow(0 2px 8px rgba(4,18,31,.25))}
-  @media (max-width:900px){.topo{position:static;padding:28px 0 0 24px}.topo img{height:80px}}
+  .topo{position:absolute;top:118px;left:120px;z-index:2}
+  .topo img{height:180px;width:auto;opacity:.97;
+    filter:drop-shadow(0 4px 14px rgba(4,18,31,.35));
+    animation:hai-blur-up .7s cubic-bezier(.22,.61,.36,1) both,
+              hai-flutuar 12s ease-in-out 1.2s infinite}
+  @keyframes hai-flutuar{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-14px) rotate(-1.2deg)}}
+  /* Bolhas de luz vagando pelo fundo */
+  .orbes{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .orbe{position:absolute;border-radius:50%;filter:blur(70px)}
+  .orbe.o1{width:440px;height:440px;background:#4d8bba;opacity:.32;top:-130px;right:-90px;
+    animation:hai-float 18s ease-in-out infinite}
+  .orbe.o2{width:360px;height:360px;background:#86b2d3;opacity:.22;bottom:-120px;left:20%;
+    animation:hai-float 26s ease-in-out infinite reverse}
+  .orbe.o3{width:300px;height:300px;background:#16608f;opacity:.5;top:36%;right:28%;
+    animation:hai-float 32s ease-in-out 2s infinite}
+  .palco,.topo{position:relative}
+  .topo{position:absolute}
+  .palco{z-index:1}
+  @media (max-width:900px){.topo{position:static;padding:28px 0 0 24px}.topo img{height:84px}}
   .palco{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 34px 60px}
   .duas{display:grid;grid-template-columns:400px 1fr;gap:72px;align-items:center;max-width:1040px;width:100%}
   .cartao{background:#fff;border-radius:18px;padding:34px 32px;border:1px solid rgba(255,255,255,.4);
-    box-shadow:0 24px 60px -12px rgba(4,18,31,.5);animation:hai-blur-up .6s cubic-bezier(.22,.61,.36,1) both}
+    box-shadow:0 24px 60px -12px rgba(4,18,31,.5);animation:hai-blur-up .6s cubic-bezier(.22,.61,.36,1) both;
+    position:relative}
+  /* Brilho percorrendo a borda do cartão */
+  @keyframes hai-shine{0%{background-position:0% 0%}100%{background-position:200% 0%}}
+  .cartao::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;
+    background:linear-gradient(110deg,rgba(134,178,211,0) 20%,rgba(134,178,211,.5) 40%,rgba(217,232,242,.95) 50%,rgba(134,178,211,.5) 60%,rgba(134,178,211,0) 80%);
+    background-size:200% 100%;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;animation:hai-shine 3.6s linear infinite;pointer-events:none}
   .cartao.hai-shake{animation:hai-blur-up .6s cubic-bezier(.22,.61,.36,1) both,hai-shake-k .45s ease-out .15s both}
   .cartao h1{font-size:20px;font-weight:700;color:#0f172a}
   .cartao small{display:block;font-size:13px;color:#64748b;margin-top:3px}
@@ -172,15 +195,21 @@ _LOGIN_HTML = """<!DOCTYPE html>
   .lado h2{font-size:31px;font-weight:700;line-height:1.2;text-wrap:balance}
   .lado .sub{font-size:15px;color:#d9e8f2;margin-top:12px;max-width:46ch;line-height:1.55}
   .itens{margin-top:30px;display:flex;flex-direction:column;gap:16px}
-  .item{display:flex;align-items:center;gap:13px;font-size:14.5px}
+  .item{display:flex;align-items:center;gap:13px;font-size:14.5px;
+    animation:hai-fade-up .8s cubic-bezier(.22,.61,.36,1) both}
+  .item:nth-child(1){animation-delay:.35s}
+  .item:nth-child(2){animation-delay:.55s}
+  .item:nth-child(3){animation-delay:.75s}
   .item .ico{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;flex-shrink:0;
     border-radius:12px;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
   .item .ico svg{width:17px;height:17px}
   .lado .rodape{margin-top:34px;font-size:12.5px;color:#86b2d3}
   @media (max-width:900px){.duas{grid-template-columns:minmax(0,400px);justify-content:center}.lado{display:none}.topo{text-align:center}}
-  @media (prefers-reduced-motion:reduce){body,.cartao,.cartao.hai-shake,.lado,button::after{animation:none}}
+  @media (prefers-reduced-motion:reduce){body,.cartao,.cartao.hai-shake,.lado,button::after,
+    .topo img,.orbe,.cartao::before,.item{animation:none}}
 </style></head>
 <body>
+  <div class="orbes" aria-hidden="true"><span class="orbe o1"></span><span class="orbe o2"></span><span class="orbe o3"></span></div>
   <div class="topo"><img src="data:image/png;base64,__LOGO__" alt="Hai Logistics" /></div>
   <div class="palco">
     <div class="duas">
