@@ -138,8 +138,8 @@ _LOGIN_HTML = """<!DOCTYPE html>
   @keyframes hai-fade-up{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
   @keyframes hai-shake-k{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
   @keyframes hai-shimmer-sweep{0%{transform:translateX(-150%) skewX(-18deg)}100%{transform:translateX(250%) skewX(-18deg)}}
-  .topo{position:absolute;top:38px;left:90px;z-index:2}
-  .topo img{height:180px;width:auto;opacity:.97;
+  .topo{position:absolute;top:38px;left:24px;z-index:2}
+  .topo img{height:150px;width:auto;opacity:.97;
     filter:drop-shadow(0 4px 14px rgba(4,18,31,.35));
     animation:hai-blur-up .7s cubic-bezier(.22,.61,.36,1) both,
               hai-flutuar 12s ease-in-out 1.2s infinite}
