@@ -1,0 +1,433 @@
+================================================================================
+  CRM DASHBOARD - HAI LOGISTICS
+  MANUAL COMPLETO / DOCUMENTO DE HANDOFF
+  Atualizado em: 16/07/2026
+================================================================================
+
+Este documento explica TUDO sobre o painel comercial da Hai Logistics: o que ele
+faz, como funciona por dentro, como ligar, como mexer e como manter. Serve tanto
+para o Richard (visão de gestor) quanto para qualquer pessoa técnica que pegar o
+projeto no futuro.
+
+--------------------------------------------------------------------------------
+  ÍNDICE
+--------------------------------------------------------------------------------
+  1.  O QUE É O PAINEL (resumo em 30 segundos)
+  2.  COMO ABRIR E USAR (PC, nuvem, senha)
+  3.  AS 5 ABAS DO PAINEL (o que cada uma mostra)
+  4.  DE ONDE VÊM OS NÚMEROS (Pipedrive -> banco -> tela)
+  5.  O EMAIL AUTOMÁTICO DE SEGUNDA-FEIRA (passo a passo da engrenagem)
+  6.  O RELATÓRIO GERAL (botão de baixar)
+  7.  A EQUIPE (vendedores e cargos)
+  8.  ONDE FICAM OS SEGREDOS (tokens, senhas)
+  9.  COMO FAZER MUDANÇAS COMUNS (trocar senha, cargo, destinatário...)
+  10. ESTRUTURA TÉCNICA (arquivos e o que cada um faz)
+  11. NUVEM: RENDER + GITHUB (como está publicado)
+  12. HISTÓRICO: TUDO QUE FIZEMOS (linha do tempo)
+  13. RESSALVAS HONESTAS (o que confiar e o que não)
+  14. SOLUÇÃO DE PROBLEMAS (se algo der errado)
+
+================================================================================
+  1. O QUE É O PAINEL (resumo em 30 segundos)
+================================================================================
+
+É um painel na internet que mostra, de forma organizada e bonita, como está o
+comercial da Hai Logistics: quantas negociações estão abertas, ganhas, perdidas,
+o funil por etapa, o desempenho de cada vendedor e as atividades da equipe.
+
+Os dados vêm AUTOMATICAMENTE do CRM da empresa (o Pipedrive). O painel se
+atualiza sozinho e toda segunda-feira de manhã manda um resumo por e-mail.
+
+Funciona no computador, no iPad e no celular. Tem senha.
+
+================================================================================
+  2. COMO ABRIR E USAR
+================================================================================
+
+>> NA NUVEM (qualquer lugar - PC, iPad, celular):
+   Endereço:  https://crm-dashboard-x8v6.onrender.com
+   Senha:     BOSS  (tudo maiúsculo)
+   - Não tem campo de usuário, só a senha.
+   - Detalhe do plano gratuito do Render: se ninguém usa por ~15 minutos, o
+     painel "dorme". Ao abrir de novo, ele acorda em 30-60 segundos (a primeira
+     tela pode demorar um pouquinho). Isso é normal.
+
+>> NO COMPUTADOR DO RICHARD (versão local):
+   - Atalho na Área de Trabalho: "CRM Dashboard - Hai Logistics"
+     (esse atalho na verdade abre a NUVEM no Chrome em modo aplicativo.)
+   - Para rodar a versão LOCAL de verdade (que roda no próprio PC):
+     abra o arquivo "Abrir Dashboard.bat" dentro da pasta do projeto.
+     Ele liga um servidor e abre http://127.0.0.1:8000 no navegador.
+     Para DESLIGAR: feche a janela preta que abriu.
+
+>> SOBRE A SENHA (importante):
+   - O login vale por 30 MINUTOS SEM USO. Enquanto você está mexendo, ele se
+     renova sozinho e nunca pede senha.
+   - Se você fechar e voltar depois de 30 min (ou no dia seguinte), ele pede
+     BOSS de novo. Isso vale no PC, iPad e celular.
+   - Por que 30 min? O Chrome costuma "lembrar" a sessão mesmo depois de
+     fechado, então o controle do tempo é feito pelo servidor (mais seguro).
+
+================================================================================
+  3. AS 5 ABAS DO PAINEL
+================================================================================
+
+>> HOME
+   - 6 cartões no topo: Total de negociações, Em aberto, Pipeline em aberto (R$),
+     Ganhas no mês, Atividades hoje, Vendedores.
+   - Funil por etapa (barras) = quantas negociações abertas em cada etapa.
+   - Ranking de vendedores por negociações abertas.
+   - DICA: os cartões, as barras do funil e os vendedores são CLICÁVEIS. Clicar
+     abre a aba "Oportunidades" já filtrada naquilo.
+
+>> ATIVIDADES
+   - Linha do tempo com as atividades registradas no CRM (ligações, e-mails,
+     reuniões, tarefas), com o vendedor e a negociação.
+   - Filtro por vendedor + busca por texto.
+
+>> OPORTUNIDADES
+   - Lista das negociações EM ABERTO, com empresa, etapa, vendedor, valor e
+     última atividade.
+   - Filtros por etapa e por vendedor. Mostra o total e a soma de valores.
+
+>> RELATÓRIOS
+   - Cartões: Ganhas, Perdidas, Em aberto, Taxa de conversão geral.
+   - 4 gráficos: funil por etapa, rosca Ganhas x Perdidas x Abertas, abertas por
+     vendedor, e negociações criadas por mês.
+   - Tabela de desempenho por vendedor com barrinha de conversão.
+
+>> PERGUNTAS RÁPIDAS
+   - Botão "Baixar Relatório Geral" (gera um arquivo com TODOS os números).
+   - Botões de perguntas prontas (o que cada um fez hoje, negociações paradas,
+     ranking de ganhas, conversão, etc.) - respostas calculadas na hora, sem
+     custo de IA.
+
+================================================================================
+  4. DE ONDE VÊM OS NÚMEROS (Pipedrive -> banco -> tela)
+================================================================================
+
+O caminho dos dados é assim:
+
+   [PIPEDRIVE]  ->  [SINCRONIZAÇÃO]  ->  [BANCO LOCAL]  ->  [TELA DO PAINEL]
+
+   1. O painel tem uma "chave de acesso" (token) do Pipedrive, de um usuário
+      ADMINISTRADOR (Simeão), que enxerga as negociações da empresa TODA.
+   2. De tempos em tempos, o painel PUXA do Pipedrive: negociações, vendedores,
+      funis, etapas e atividades.
+   3. Guarda tudo num banco local (arquivo). O painel sempre LÊ desse banco -
+      por isso é rápido e não sobrecarrega o Pipedrive.
+   4. As telas mostram os números já calculados a partir do banco.
+
+>> QUANDO ATUALIZA SOZINHO:
+   - Ao abrir o painel (busca dados frescos em segundo plano).
+   - A cada 30 minutos automaticamente.
+   - A tela recarrega sozinha a cada 5 minutos.
+   - Tem também o botão "↻ Atualizar" para forçar na hora.
+
+>> COMO GANHAS/PERDIDAS/ABERTAS SÃO DEFINIDAS:
+   - Vêm direto do campo "status" do Pipedrive: open (aberta), won (ganha),
+     lost (perdida). Negociações na LIXEIRA do Pipedrive são ignoradas.
+
+>> CONFERÊNCIA DE VERACIDADE (feita em 16/07/2026, contra a API ao vivo):
+   - Abertas: 889 = 889  (bate exato)
+   - Ganhas:  16  = 16   (bate exato)
+   - Perdidas: 677 = 677 (bate exato)
+   - Total (sem lixeira): 1.582
+   - PC e nuvem conferidos, os dois batendo com o Pipedrive.
+
+================================================================================
+  5. O EMAIL AUTOMÁTICO DE SEGUNDA-FEIRA
+================================================================================
+
+Todo domingo à noite / segunda de manhã, chega no e-mail do Richard um resumo
+comercial. O detalhe importante: ISSO NÃO DEPENDE DE NENHUM PC LIGADO.
+
+>> A ENGRENAGEM (por que é assim):
+   O painel na nuvem (Render, plano grátis) NÃO consegue enviar e-mail direto
+   (o Render grátis bloqueia isso). A solução foi usar um "robô" do Google.
+
+   PASSO A PASSO do que acontece toda segunda entre 08h e 09h:
+
+   1. Um ROBÔ do Google (Google Apps Script), dentro da conta de e-mail
+      "disparoemailrichard@gmail.com", acorda sozinho no horário.
+      (Projeto do robô se chama "envio email crm segunda as 08".)
+
+   2. O robô chama o painel na nuvem, num endereço especial protegido por uma
+      chave secreta:
+         /api/relatorio-semanal-dados?chave=...
+      O painel devolve o relatório PRONTO: assunto, corpo bonito (HTML), corpo
+      simples (reserva) e o PDF anexo - tudo com os dados recém-sincronizados.
+      (Se o painel ainda está acordando, o robô insiste por ~4 minutos.)
+
+   3. O robô ENVIA o e-mail pelo PRÓPRIO GMAIL para richard@hailogistics.com.br.
+
+   4. Como o remetente está nos "Remetentes Confiáveis" do Outlook do Richard,
+      o e-mail cai direto na caixa de entrada.
+
+>> PEÇAS DE APOIO:
+   - cron-job.org (conta do Richard): job "Relatorio CRM segunda 08h" que serve
+     de "despertador extra" do painel às 08h em ponto.
+   - As configurações de e-mail (SMTP_*) também estão no Render, permitindo o
+     envio manual pelo botão do painel quando rodando localmente.
+
+>> O QUE O E-MAIL CONTÉM (visual novo, desde 16/07/2026):
+   - Cabeçalho azul-marinho "Hai Logistics - Relatório Comercial - Semana XX/XX".
+   - 4 cartões de números (abertas, vendas no mês, paradas 15+ dias, conversão).
+   - 3 prioridades da semana (escolhidas automaticamente pelos dados: o mais
+     urgente sobe pro topo).
+   - Caixa "Ação desta semana".
+   - Tabela "Equipe - visão rápida".
+   - Pontos de atenção (só aparecem quando existem de verdade).
+   - Botão "Abrir o painel completo".
+   - ANEXO: PDF de 1 página (resumo executivo) no mesmo visual.
+
+>> IMPORTANTE - AJUSTE PENDENTE NO ROBÔ (para o corpo BONITO):
+   O painel já entrega o corpo bonito (campo "corpo_html"). Para o e-mail de
+   segunda sair bonito no CORPO, o robô do Google precisa usar esse campo como
+   "htmlBody". Enquanto isso não é feito, segunda vai o texto simples + o PDF
+   novo (funciona, só o corpo não fica bonito). O PDF anexo JÁ é o novo.
+   -> Para ativar: no script.google.com, projeto do robô, na hora de montar o
+      e-mail, passar htmlBody = resposta.corpo_html (além do texto e do anexo).
+
+================================================================================
+  6. O RELATÓRIO GERAL (botão de baixar)
+================================================================================
+
+Na aba "Perguntas Rápidas", o botão "Baixar Relatório Geral" gera um arquivo de
+texto (.md) com TODOS os números do dia: resumo, equipe por cargo, conversão por
+vendedor, atividades, paradas, pipeline por etapa, maiores negociações, etc.
+
+Serve para colar numa conversa com a Claude (plano Max do Richard) e perguntar à
+vontade sobre a equipe e as vendas, sem custo de API.
+
+================================================================================
+  7. A EQUIPE (vendedores e cargos)
+================================================================================
+
+Vendedores ATIVOS no Pipedrive (com cargo cadastrado no painel):
+   - Krysthopher Scheidemantel .... Inside Sales
+   - Eloiza Chalub ................. Inside Sales
+   - Daiane Cristina Pereira ....... SDR / Prospecção
+   - Camila Peres .................. Vendedora
+   - Simeão Aureo Batista Filho .... Coordenador / Vendedor
+   - Jeisson Gelasio ............... Vendedor
+   - Amanda ....................... Vendedora
+   - Fabrício Sant'Anna ........... Vendedor
+   - Natalia Otero ................ Vendedora
+   - Adriana Santos ............... (conta de teste do Pipedrive, mantida a
+                                     pedido; aparece como "Outros")
+
+Nenhum vendedor está oculto atualmente. A lista de "ex-funcionários" (que ficam
+escondidos do painel) está VAZIA - todos os usuários atuais aparecem.
+
+================================================================================
+  8. ONDE FICAM OS SEGREDOS (tokens, senhas)
+================================================================================
+
+Todos os segredos ficam num arquivo chamado ".env" na pasta do projeto (esse
+arquivo NUNCA é enviado para o GitHub - fica só no PC). Na NUVEM, os mesmos
+valores ficam no painel do Render, em "Environment".
+
+Campos do .env:
+   PIPEDRIVE_TOKEN ....... chave de acesso ao Pipedrive (admin: Simeão)
+   PIPEDRIVE_BASE_URL .... endereço da API do Pipedrive
+   RD_CRM_TOKEN .......... token antigo do RD Station (só backup, não usa mais)
+   PAINEL_SENHA .......... senha do painel (padrão: BOSS)
+   PAINEL_SESSAO_MIN ..... minutos que o login dura sem uso (padrão: 30)
+   SMTP_HOST/PORT ........ servidor de envio (Gmail)
+   SMTP_USER ............. disparoemailrichard@gmail.com (conta que envia)
+   SMTP_PASSWORD ......... "senha de aplicativo" do Google dessa conta
+   RELATORIO_EMAIL_TO .... para quem vai o e-mail (richard@hailogistics.com.br)
+   RELATORIO_CRON_CHAVE .. chave secreta que o robô do Google usa
+
+ATENÇÃO: o token do Pipedrive e essas senhas dão acesso a dados da empresa.
+Nunca compartilhar em grupos. Se um dia vazar, é só gerar um novo no Pipedrive
+e trocar no .env (local) e no Render (nuvem).
+
+================================================================================
+  9. COMO FAZER MUDANÇAS COMUNS
+================================================================================
+
+>> TROCAR A SENHA DO PAINEL:
+   - Nuvem: Render -> serviço crm-dashboard -> Environment -> PAINEL_SENHA.
+   - PC: arquivo .env, linha PAINEL_SENHA.
+
+>> MUDAR O TEMPO QUE O LOGIN DURA:
+   - PAINEL_SESSAO_MIN (em minutos). Ex.: 60 = uma hora sem uso.
+
+>> TROCAR/ADICIONAR DESTINATÁRIO DO E-MAIL:
+   - RELATORIO_EMAIL_TO (pode ter vários, separados por vírgula).
+
+>> ADICIONAR/MUDAR CARGO DE UM VENDEDOR:
+   - Arquivo backend/app/config.py, dicionário CARGOS.
+
+>> ESCONDER UM VENDEDOR DO PAINEL (ex-funcionário):
+   - Arquivo backend/app/config.py, lista EX_FUNCIONARIOS (adicionar o nome).
+
+>> DEPOIS DE MUDAR NO PC, PUBLICAR NA NUVEM:
+   - As mudanças de CÓDIGO vão para a nuvem via GitHub (git push). O Render
+     atualiza sozinho em ~2-3 minutos.
+   - As mudanças de SEGREDO (.env) precisam ser feitas TAMBÉM no Render
+     (Environment), porque o .env não vai para o GitHub.
+
+================================================================================
+  10. ESTRUTURA TÉCNICA (arquivos e o que cada um faz)
+================================================================================
+
+Pasta do projeto:
+  C:\Users\RicharddaSilva-HaiLo\OneDrive - Hai Logistics\Área de Trabalho\
+     projetos-claude\crm dashboard
+
+  backend/app/
+    main.py ................ servidor + todos os endpoints + tela de login +
+                             lógica das prioridades da semana e pontos de atenção
+    config.py .............. lê o .env; lista EX_FUNCIONARIOS; dicionário CARGOS;
+                             tempo de sessão; pastas
+    sync.py ................ sincronização: puxa do Pipedrive e grava no banco
+                             (traduz os campos do Pipedrive para as tabelas)
+    integration/
+      pipedrive_client.py .. conversa com a API do Pipedrive (o "motor" atual)
+      rd_client.py ......... motor antigo do RD Station (mantido só como backup)
+    db/
+      models.py ............ as "gavetas" do banco (deals, users, stages,
+                             activities, sync_log)
+      database.py .......... conexão com o banco (SQLite)
+    emailer.py ............. envio de e-mail por SMTP (texto + HTML + anexo)
+    email_html.py .......... monta o CORPO BONITO do e-mail (HTML)
+    pdf_relatorio.py ....... monta o PDF anexo (1 página, visual Hai)
+
+  frontend/
+    index.html ............. a página do painel (menu lateral + as 5 abas)
+    css/style.css .......... todo o visual (design system Hai) + animações
+    js/app.js .............. busca os dados dos endpoints e desenha as telas
+    img/ ................... logo da Hai (azul e branca) e favicon
+
+  data/
+    crm.db ................. banco local (gerado automaticamente; não versionado)
+
+  design/ .................. prints e prévias de referência (não versionado)
+  .env ..................... segredos (NÃO versionado)
+  requirements.txt ......... bibliotecas Python usadas
+  Abrir Dashboard.bat ...... liga o painel local com 1 clique
+  PROGRESSO.md ............. diário do projeto (changelog técnico)
+  HANDOFF ... .txt ......... este documento
+
+Tecnologias: Python 3.14 + FastAPI (servidor) + SQLite (banco) + Chart.js
+(gráficos) + fpdf2 (PDF). Frontend em HTML/CSS/JS puro (sem frameworks pesados).
+
+================================================================================
+  11. NUVEM: RENDER + GITHUB
+================================================================================
+
+>> GITHUB (onde o código fica guardado):
+   https://github.com/richarditj-010/crm-dashboard
+   - O .env e o banco NÃO vão para lá (ficam ignorados).
+
+>> RENDER (onde o painel roda na internet):
+   - Serviço: crm-dashboard  ->  https://crm-dashboard-x8v6.onrender.com
+   - Plano gratuito (dorme após ~15 min de inatividade; acorda em ~30-60s).
+   - Publicação: automática. Todo "git push" para o GitHub dispara um novo
+     deploy no Render em ~2-3 minutos.
+   - Configuração: Build "pip install -r requirements.txt";
+     Start "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT".
+   - Os segredos ficam em Render -> Environment (PIPEDRIVE_TOKEN, PAINEL_SENHA,
+     SMTP_*, RELATORIO_*, etc.).
+
+================================================================================
+  12. HISTÓRICO: TUDO QUE FIZEMOS
+================================================================================
+
+>> ANTES (junho/2026):
+   - Painel criado do zero, integrado ao RD Station CRM.
+   - 5 abas prontas, publicado na nuvem (Render), login por senha.
+   - E-mail automático de segunda funcionando (robô do Google).
+
+>> 16/07/2026 - MIGRAÇÃO PARA O PIPEDRIVE:
+   - A Hai trocou de CRM (saiu do RD Station, foi para o Pipedrive).
+   - Trocamos só a "fonte" dos dados: criamos o motor do Pipedrive e adaptamos
+     a sincronização. TODO O RESTO (telas, relatórios, e-mail) ficou igual.
+   - Token de admin (Simeão) configurado. Números conferidos e batendo exato
+     (889 abertas, 16 ganhas, 677 perdidas) no PC E na nuvem.
+   - Equipe e cargos atualizados. Filtro de etapas corrigido (25 repetidas -> 7).
+
+>> 16/07/2026 (tarde) - VISUAL NOVO (design system Hai):
+   - Logo oficial da Hai, fonte Inter, cores azul-marinho da marca.
+   - Menu lateral navy, cartões arredondados, gráficos limpos numa cor só,
+     tabelas profissionais.
+   - Tela de login nova (fundo navy em movimento, logo grande, "Movendo seu
+     sucesso"), com bolhas de luz e brilho no cartão.
+   - Home clicável (clicar em etapa/vendedor abre Oportunidades filtrada).
+   - Login passou a expirar em 30 min sem uso (senha volta a ser pedida).
+   - Pacote de animações: números contando, barras crescendo, entradas em
+     cascata, logo flutuando, pontinhos pulsando. Tudo respeita "reduzir
+     movimento" para acessibilidade.
+   - Revisão adversarial (vários revisores automáticos): achados corrigidos.
+
+>> 16/07/2026 (tarde) - E-MAIL E PDF BONITOS:
+   - Corpo do e-mail virou HTML no visual da Hai (cartões, prioridades, tabela,
+     botão do painel).
+   - PDF anexo repaginado (faixa navy com logo, cartões coloridos, tabela com
+     barrinhas de conversão, caixas de atenção).
+   - Teste real enviado e recebido com sucesso.
+
+>> AUDITORIA FINAL (16/07/2026):
+   - 3 verificações independentes: dados batendo com o Pipedrive ao vivo,
+     engrenagem do e-mail semanal OK, todas as telas/login/versão-do-PC OK.
+   - Veredito: tudo funcionando, correto e seguro.
+
+================================================================================
+  13. RESSALVAS HONESTAS (o que confiar e o que não)
+================================================================================
+
+>> PODE CONFIAR 100%:
+   - As CONTAGENS (abertas, ganhas, perdidas, por vendedor, por etapa). Foram
+     conferidas contra o Pipedrive e batem exato.
+
+>> CUIDADO / CONTEXTO:
+   - O "Pipeline em R$" NÃO é confiável, porque a equipe quase não preenche o
+     valor das negociações no Pipedrive (só ~14 de 889 abertas têm valor). Ou
+     seja: o total em R$ fica baixo artificialmente. Use as CONTAGENS para
+     decidir, não o valor em R$. (O painel inclusive avisa isso nos "pontos de
+     atenção".)
+   - "Atividades hoje" só reflete o que foi REGISTRADO no Pipedrive. Se o
+     vendedor fez a ligação mas não registrou, não conta.
+   - A prova final do e-mail de segunda é na própria segunda de manhã, quando
+     ele cai na caixa. A engrenagem toda já foi testada e está OK.
+
+================================================================================
+  14. SOLUÇÃO DE PROBLEMAS
+================================================================================
+
+>> "Abri o painel e apareceu o visual antigo"
+   - Aperte Ctrl+F5 uma vez (o navegador guardou a versão velha na memória).
+
+>> "O painel demorou pra abrir na nuvem"
+   - Normal: o plano grátis do Render estava dormindo. Espere 30-60 segundos.
+
+>> "Os números parecem parados / desatualizados"
+   - Clique no botão "↻ Atualizar". Se persistir, o Pipedrive pode estar fora
+     do ar ou o token pode ter sido revogado (gerar novo token no Pipedrive e
+     atualizar PIPEDRIVE_TOKEN no .env e no Render).
+
+>> "Não recebi o e-mail de segunda"
+   - Verifique o lixo eletrônico e marque disparoemailrichard@gmail.com como
+     remetente confiável.
+   - Verifique no script.google.com se o robô "envio email crm segunda as 08"
+     rodou (histórico de execuções).
+
+>> "Esqueci a senha do painel"
+   - É BOSS. Se foi trocada, está em PAINEL_SENHA (no .env local e no Render).
+
+================================================================================
+  CONTATOS E REFERÊNCIAS RÁPIDAS
+================================================================================
+  Painel (nuvem) ....... https://crm-dashboard-x8v6.onrender.com  (senha BOSS)
+  Código (GitHub) ...... https://github.com/richarditj-010/crm-dashboard
+  Hospedagem ........... render.com  (serviço crm-dashboard)
+  Robô do e-mail ....... script.google.com  (conta disparoemailrichard@gmail.com)
+  Despertador .......... cron-job.org  (conta do Richard)
+  CRM (fonte dados) .... Pipedrive  (app.pipedrive.com)
+
+================================================================================
+  FIM DO DOCUMENTO
+================================================================================
