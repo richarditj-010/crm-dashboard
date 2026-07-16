@@ -185,6 +185,22 @@ Daiane Cristina Pereira, Camila Peres, Simeão Batista (+ Natalia Otero, sem neg
 
 ## 🗒️ Histórico (changelog)
 
+- **16/07/2026 (fim do dia)** — **E-mail e PDF repaginados + mais animações + handoff.**
+  (1) **E-mail semanal** ganhou corpo HTML bonito (`email_html.py`): cabeçalho navy,
+  cartões de números, 3 prioridades numeradas, caixa da ação, tabela da equipe, pontos
+  de atenção e botão do painel. `emailer.py` envia multipart (texto simples = reserva).
+  O `/api/relatorio-semanal-dados` passou a devolver `corpo_html`. (2) **PDF anexo**
+  repaginado (`pdf_relatorio.py`): faixa navy com a logo real, cartões coloridos,
+  prioridades em bolinhas, tabela com barrinhas de conversão, caixas de atenção; rodapé
+  agora diz "Pipedrive". 2 e-mails de teste reais enviados e aceitos pelo Gmail.
+  (3) **Animações** no login (logo flutuante posicionada px a px, orbes de luz, brilho
+  no cartão) e no painel (números contando de 0, barras crescendo, entradas em cascata,
+  pontinhos pulsantes) — tudo com guarda de "reduzir movimento". (4) Criado o
+  **HANDOFF - Manual Completo do CRM Dashboard.txt** (manual detalhado para leigo e
+  técnico). PENDENTE não-bloqueante: ajustar o robô do Google (Apps Script) para usar
+  `corpo_html` como `htmlBody` — só então o CORPO de segunda sai bonito (o PDF novo já
+  vai automático). VERIFICAR: se os e-mails de teste chegaram (podem ter caído no lixo
+  eletrônico do Outlook → marcar remetente confiável).
 - **16/07/2026 (tarde 2)** — **Senha volta a ser pedida.** O Chrome restaurava a sessão
   mesmo depois de fechado (comportamento do navegador, atalho em modo aplicativo).
   Solução no servidor: o "selo" de login agora é assinado com carimbo de hora e vale
