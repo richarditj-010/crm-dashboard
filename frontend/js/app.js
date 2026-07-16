@@ -39,6 +39,13 @@ function eixos(horizontal) {
   return horizontal ? { x: valores, y: categorias } : { x: categorias, y: valores };
 }
 
+// Busca JSON já tratando sessão expirada (401 -> volta pra tela de senha)
+async function getJSON(url, opts) {
+  const r = await fetch(url, opts);
+  if (r.status === 401) { location.href = "/login"; throw new Error("sessão expirada"); }
+  return r.json();
+}
+
 // Ícone de estado vazio (caixa de entrada)
 const VAZIO_SVG = `<svg class="hai-bob" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>`;
 function vazio(texto) {
@@ -67,7 +74,7 @@ abas.forEach(t => {
 
 // ===== HOME =====
 async function carregarHome() {
-  const d = await (await fetch("/api/home")).json();
+  const d = await getJSON("/api/home");
   document.getElementById("ultimo-sync").textContent = "Última sincronização: " + d.ultima_sincronizacao;
   const r = d.resumo;
   const cards = [
@@ -99,7 +106,7 @@ let atvFiltrosCarregados = false;
 async function carregarAtividades() {
   const vend = document.getElementById("atv-vendedor").value;
   const busca = document.getElementById("atv-busca").value;
-  const d = await (await fetch(`/api/atividades?vendedor=${encodeURIComponent(vend)}&busca=${encodeURIComponent(busca)}`)).json();
+  const d = await getJSON(`/api/atividades?vendedor=${encodeURIComponent(vend)}&busca=${encodeURIComponent(busca)}`);
   if (!atvFiltrosCarregados) {
     document.getElementById("atv-vendedor").innerHTML =
       '<option value="">Todos os vendedores</option>' + d.vendedores.map(v => `<option>${v}</option>`).join("");
@@ -120,7 +127,7 @@ let opFiltrosCarregados = false;
 async function carregarOportunidades() {
   const etapa = document.getElementById("op-etapa").value;
   const vend = document.getElementById("op-vendedor").value;
-  const d = await (await fetch(`/api/oportunidades?etapa=${encodeURIComponent(etapa)}&vendedor=${encodeURIComponent(vend)}`)).json();
+  const d = await getJSON(`/api/oportunidades?etapa=${encodeURIComponent(etapa)}&vendedor=${encodeURIComponent(vend)}`);
   if (!opFiltrosCarregados) {
     document.getElementById("op-etapa").innerHTML =
       '<option value="">Todas as etapas</option>' + d.etapas.map(e => `<option>${e}</option>`).join("");
@@ -145,7 +152,7 @@ function desenhar(id, config) {
 }
 
 async function carregarRelatorios() {
-  const d = await (await fetch("/api/relatorios")).json();
+  const d = await getJSON("/api/relatorios");
   const g = d.geral;
   const cards = [
     { rotulo: "Ganhas (total)", valor: g.ganhas, cls: "verde" },
@@ -230,7 +237,7 @@ async function carregarPerguntas() {
   const cont = document.getElementById("pr-botoes");
   if (prBlocos.length) return; // já carregado
   cont.innerHTML = "<span class='muted'>Carregando…</span>";
-  const d = await (await fetch("/api/perguntas-rapidas")).json();
+  const d = await getJSON("/api/perguntas-rapidas");
   prBlocos = d.blocos;
   document.getElementById("pr-gerado").textContent = "Dados de: " + d.gerado_em;
   cont.innerHTML = prBlocos.map(b =>
@@ -259,7 +266,7 @@ function mostrarPergunta(id) {
 document.getElementById("btn-atualizar").addEventListener("click", async () => {
   const btn = document.getElementById("btn-atualizar");
   btn.disabled = true; btn.textContent = "Atualizando…";
-  try { await fetch("/api/sync", { method: "POST" }); await carregarHome(); }
+  try { await getJSON("/api/sync", { method: "POST" }); await carregarHome(); }
   finally { btn.disabled = false; btn.textContent = "↻ Atualizar"; }
 });
 

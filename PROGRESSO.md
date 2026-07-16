@@ -175,13 +175,22 @@ Daiane Cristina Pereira, Camila Peres, Simeão Batista (+ Natalia Otero, sem neg
 - **Onde abrir:**
   - 🖥️ PC (este computador): atalho **"Abrir Dashboard CRM"** (versão local).
   - ☁️ Nuvem (PC, iPad, celular): **https://crm-dashboard-x8v6.onrender.com**
-- **Pede senha toda vez:** o login vale só enquanto o navegador está aberto. Fechou e
-  abriu de novo → pede `BOSS` outra vez (vale no PC e no iPad).
+- **Pede senha de novo:** o login vale por **30 minutos sem uso** (enquanto o painel
+  está aberto/em uso, renova sozinho). Fechou e voltou depois disso → pede `BOSS`
+  outra vez (PC, iPad e celular). O prazo é controlado pelo servidor — o Chrome
+  costuma "lembrar" a sessão mesmo fechado, por isso não dava pra confiar no navegador.
+  Para mudar o tempo: `PAINEL_SESSAO_MIN` no `.env` (PC) ou Environment (Render).
 - **Trocar a senha no futuro:** na nuvem, em render.com → serviço `crm-dashboard` →
   Environment → `PAINEL_SENHA`. No PC, no arquivo `.env` (linha `PAINEL_SENHA`).
 
 ## 🗒️ Histórico (changelog)
 
+- **16/07/2026 (tarde 2)** — **Senha volta a ser pedida.** O Chrome restaurava a sessão
+  mesmo depois de fechado (comportamento do navegador, atalho em modo aplicativo).
+  Solução no servidor: o "selo" de login agora é assinado com carimbo de hora e vale
+  **30 min sem uso** (renova sozinho enquanto o painel está em uso; `PAINEL_SESSAO_MIN`
+  para ajustar). Selos antigos/falsificados/vencidos barrados (testado). Se o prazo
+  vencer com a tela aberta, ela volta sozinha para a tela de senha.
 - **16/07/2026 (tarde)** — **VISUAL NOVO: design system Hai.** O painel ganhou a mesma
   identidade do sistema interno da Hai: logo oficial no topo, fonte Inter, cartões
   arredondados, gráficos limpos numa cor só (azul-marinho da marca), tabelas com

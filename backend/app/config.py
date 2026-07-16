@@ -25,6 +25,11 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
 # Se quiser DESLIGAR o login (abrir direto, sem pedir nada), deixe PAINEL_SENHA vazio no .env.
 PAINEL_SENHA = os.getenv("PAINEL_SENHA", "BOSS").strip()
 
+# Por quantos minutos o login vale SEM USO. Enquanto o painel está aberto/em uso,
+# o prazo se renova sozinho; fechou e voltou depois desse tempo -> pede a senha
+# de novo (vale no PC, iPad e celular). Para mudar: PAINEL_SESSAO_MIN no .env/Render.
+PAINEL_SESSAO_MIN = int(os.getenv("PAINEL_SESSAO_MIN", "30"))
+
 APP_HOST = os.getenv("APP_HOST", "127.0.0.1").strip()
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 

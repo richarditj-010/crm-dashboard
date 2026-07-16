@@ -5,6 +5,7 @@ Backend FastAPI do CRM Dashboard.
 """
 import base64
 import hashlib
+import hmac
 import secrets
 import threading
 import time as _time
@@ -21,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import (
     FRONTEND_DIR, ANTHROPIC_API_KEY, eh_ex_funcionario, cargo_de, _normaliza,
-    PAINEL_SENHA, RELATORIO_CRON_CHAVE,
+    PAINEL_SENHA, PAINEL_SESSAO_MIN, RELATORIO_CRON_CHAVE,
 )
 from app.db.database import init_db, SessionLocal
 from app.db.models import Deal, User, DealStage, Activity, SyncLog
@@ -69,18 +70,39 @@ app = FastAPI(title="CRM Dashboard - Hai Logistics", lifespan=lifespan)
 
 
 # --- Login simples por senha (tela própria, sem campo de usuário) ---
-# Ao abrir o painel aparece uma telinha pedindo só a senha. Acertou -> entra e fica
-# logado (um "selo" guardado no navegador por 30 dias). A senha vem do config (.env);
-# se PAINEL_SENHA estiver vazia, o painel abre direto, sem pedir nada.
+# Ao abrir o painel aparece uma telinha pedindo só a senha. Acertou -> o navegador
+# guarda um "selo" ASSINADO com prazo por inatividade: enquanto o painel está em uso
+# o selo se renova sozinho; parou de usar por PAINEL_SESSAO_MIN minutos (fechou, foi
+# almoçar, voltou outro dia) -> pede a senha de novo. O prazo é controlado AQUI no
+# servidor porque alguns navegadores (Chrome) restauram a sessão mesmo depois de
+# fechados. A senha vem do config (.env); vazia = painel abre direto, sem pedir nada.
 COOKIE_LOGIN = "crm_sessao"
-# "Selo" guardado no navegador quando a senha está certa. É derivado da senha, então
-# trocar a senha invalida os acessos antigos automaticamente.
-SELO_LOGIN = hashlib.sha256(f"crm-hai::{PAINEL_SENHA}".encode("utf-8")).hexdigest()
+# Chave da assinatura do selo: derivada da senha — trocar a senha
+# invalida os acessos antigos automaticamente.
+_CHAVE_SELO = hashlib.sha256(f"crm-hai::{PAINEL_SENHA}".encode("utf-8")).digest()
+
+
+def _assinatura(ts: str) -> str:
+    return hmac.new(_CHAVE_SELO, ts.encode("ascii"), hashlib.sha256).hexdigest()
+
+
+def _selo_novo() -> str:
+    """Selo 'carimbo de hora + assinatura' — só o servidor sabe gerar."""
+    ts = format(int(_time.time()), "x")
+    return f"{ts}.{_assinatura(ts)}"
 
 
 def _logado(request) -> bool:
-    """True se o navegador já tem o selo de login válido."""
-    return secrets.compare_digest(request.cookies.get(COOKIE_LOGIN, ""), SELO_LOGIN)
+    """True se o navegador tem um selo válido, usado há menos de PAINEL_SESSAO_MIN."""
+    selo = request.cookies.get(COOKIE_LOGIN, "")
+    ts, _, sig = selo.partition(".")
+    if not ts or not sig or not secrets.compare_digest(sig, _assinatura(ts)):
+        return False
+    try:
+        idade = _time.time() - int(ts, 16)
+    except ValueError:
+        return False
+    return 0 <= idade <= PAINEL_SESSAO_MIN * 60
 
 
 def _b64_asset(nome: str) -> str:
@@ -214,9 +236,13 @@ async def proteger_com_senha(request, call_next):
     caminho = request.url.path
     # As rotas do envio semanal são chamadas por robôs externos (sem login no navegador):
     # elas se protegem sozinhas com uma chave secreta, então passam direto por aqui.
-    if (caminho in ("/login", "/api/relatorio-semanal", "/api/relatorio-semanal-dados")
-            or _logado(request)):
+    if caminho in ("/login", "/api/relatorio-semanal", "/api/relatorio-semanal-dados"):
         return await call_next(request)
+    if _logado(request):
+        resp = await call_next(request)
+        # Renova o prazo a cada uso — o selo "desliza" enquanto o painel está ativo.
+        resp.set_cookie(COOKIE_LOGIN, _selo_novo(), httponly=True, samesite="lax")
+        return resp
     if caminho.startswith("/api/"):
         return Response(status_code=401)
     return RedirectResponse("/login")
@@ -233,10 +259,10 @@ async def login_enviar(request: Request):
     senha = parse_qs(corpo).get("senha", [""])[0]
     if secrets.compare_digest(senha, PAINEL_SENHA):
         resp = RedirectResponse("/", status_code=303)
-        # Cookie "de sessão" (sem validade fixa): o login vale só enquanto o navegador
-        # estiver aberto. Ao fechar e abrir de novo, o painel pede a senha outra vez.
+        # Selo assinado com carimbo de hora: vale por PAINEL_SESSAO_MIN minutos sem
+        # uso e se renova a cada acesso. Passou do prazo -> pede a senha de novo.
         resp.set_cookie(
-            COOKIE_LOGIN, SELO_LOGIN,
+            COOKIE_LOGIN, _selo_novo(),
             httponly=True, samesite="lax",
         )
         return resp
