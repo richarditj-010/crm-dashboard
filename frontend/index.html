@@ -11,31 +11,27 @@
   <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
-  <header class="cabecalho">
-    <div class="topbar">
-      <div class="brand">
-        <img class="brand-logo" src="/static/img/logo-hai.png" alt="Hai Logistics" />
-        <span class="brand-divisor"></span>
-        <div>
-          <h1>CRM Dashboard</h1>
-          <small>Hai Logistics · Pipedrive</small>
-        </div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="/static/img/logo-hai-branca.png" alt="Hai Logistics" />
+        <small>CRM Dashboard · Pipedrive</small>
       </div>
-      <div class="topbar-right">
+      <nav class="tabs">
+        <a class="tab active" data-aba="home" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Home</a>
+        <a class="tab" data-aba="atividades" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Atividades</a>
+        <a class="tab" data-aba="oportunidades" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Oportunidades</a>
+        <a class="tab" data-aba="relatorios" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Relatórios</a>
+        <a class="tab" data-aba="perguntas" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Perguntas Rápidas</a>
+      </nav>
+      <div class="sidebar-rodape">
         <span id="ultimo-sync" class="sync-label">Última sincronização: —</span>
         <button id="btn-atualizar" class="btn azul hai-press">↻ Atualizar</button>
       </div>
-    </div>
-    <nav class="tabs">
-      <a class="tab active" data-aba="home" tabindex="0">Home</a>
-      <a class="tab" data-aba="atividades" tabindex="0">Atividades</a>
-      <a class="tab" data-aba="oportunidades" tabindex="0">Oportunidades</a>
-      <a class="tab" data-aba="relatorios" tabindex="0">Relatórios</a>
-      <a class="tab" data-aba="perguntas" tabindex="0">Perguntas Rápidas</a>
-    </nav>
-  </header>
+    </aside>
 
-  <main class="container">
+    <div class="conteudo">
+    <main class="container">
 
     <!-- HOME -->
     <section id="aba-home" class="aba">
@@ -119,7 +115,7 @@
         <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M12 3v18"/></svg></span>Desempenho por vendedor</h2>
         <div class="tabela-wrap">
           <table class="tabela" id="rel-tabela">
-            <thead><tr><th>Vendedor</th><th>Cargo</th><th class="num">Abertas</th><th class="num">Ganhas</th><th class="num">Perdidas</th><th class="num">Conversão</th></tr></thead>
+            <thead><tr><th>Vendedor</th><th class="num">Abertas</th><th class="num">Ganhas</th><th class="num">Perdidas</th><th>Conversão</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -148,6 +144,8 @@
 
     <p class="rodape">Dados lidos do Pipedrive (conta da empresa) e guardados localmente.</p>
   </main>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="/static/js/app.js"></script>

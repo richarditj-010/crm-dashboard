@@ -52,6 +52,23 @@ function vazio(texto) {
   return `<div class="vazio">${VAZIO_SVG}<span>${texto}</span></div>`;
 }
 
+// Iniciais do vendedor (bolinha de avatar): "Camila Peres" -> "CP"
+function iniciais(nome) {
+  const partes = String(nome || "").trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return "–";
+  return (partes[0][0] + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase();
+}
+
+// Abre a aba Oportunidades já filtrada (usado pelos cliques da Home)
+let opFiltroPendente = null;
+function abrirOportunidades(etapa = "", vendedor = "") {
+  opFiltroPendente = { etapa, vendedor };
+  document.querySelector('.tab[data-aba="oportunidades"]').click();
+}
+function irParaAba(nome) {
+  document.querySelector(`.tab[data-aba="${nome}"]`).click();
+}
+
 // ===== Navegação entre abas =====
 const abas = document.querySelectorAll(".tab");
 abas.forEach(t => {
@@ -77,28 +94,43 @@ async function carregarHome() {
   const d = await getJSON("/api/home");
   document.getElementById("ultimo-sync").textContent = "Última sincronização: " + d.ultima_sincronizacao;
   const r = d.resumo;
+  // "vai": pra onde o cartão leva ao ser clicado (null = não clicável)
   const cards = [
-    { rotulo: "Negociações (total)", valor: r.total_negociacoes, cls: "" },
-    { rotulo: "Em aberto", valor: r.abertas, cls: "azul" },
-    { rotulo: "Pipeline em aberto", valor: r.pipeline_total_fmt, cls: "azul" },
-    { rotulo: "Ganhas no mês", valor: r.ganhas_mes, cls: "verde" },
-    { rotulo: "Atividades hoje", valor: r.atividades_hoje, cls: "" },
-    { rotulo: "Vendedores", valor: r.vendedores, cls: "" },
+    { rotulo: "Negociações (total)", valor: r.total_negociacoes, cls: "", vai: null },
+    { rotulo: "Em aberto", valor: r.abertas, cls: "azul", destaque: true, vai: () => abrirOportunidades() },
+    { rotulo: "Pipeline em aberto", valor: r.pipeline_total_fmt, cls: "azul", vai: () => abrirOportunidades() },
+    { rotulo: "Ganhas no mês", valor: r.ganhas_mes, cls: "verde", vai: () => irParaAba("relatorios") },
+    { rotulo: "Atividades hoje", valor: r.atividades_hoje, cls: "", vai: () => irParaAba("atividades") },
+    { rotulo: "Vendedores", valor: r.vendedores, cls: "", vai: () => irParaAba("relatorios") },
   ];
-  document.getElementById("cards").innerHTML = cards.map(c =>
-    `<div class="card"><div class="rotulo">${c.rotulo}</div><div class="valor ${c.cls}">${c.valor}</div></div>`).join("");
+  const contCards = document.getElementById("cards");
+  contCards.innerHTML = cards.map(c =>
+    `<div class="card${c.destaque ? " destaque" : ""}${c.vai ? " clicavel hai-press" : ""}"${c.vai ? ' title="Clique para abrir"' : ""}>
+       <div class="rotulo">${c.rotulo}</div><div class="valor ${c.cls}">${c.valor}</div></div>`).join("");
+  contCards.querySelectorAll(".card").forEach((el, i) => {
+    if (cards[i].vai) el.addEventListener("click", cards[i].vai);
+  });
 
+  // Funil por etapa — clicar numa etapa abre Oportunidades filtrada nela
   const maxQtd = Math.max(1, ...d.por_etapa.map(e => e.quantidade));
-  document.getElementById("por-etapa").innerHTML = d.por_etapa.map(e =>
-    `<div class="bar-row"><span title="${e.etapa}">${e.etapa}</span>
+  const contEtapas = document.getElementById("por-etapa");
+  contEtapas.innerHTML = d.por_etapa.map(e =>
+    `<div class="bar-row clicavel" title="Ver as negociações em ${e.etapa}"><span>${e.etapa}</span>
      <div class="bar-track"><div class="bar-fill" style="width:${(e.quantidade/maxQtd)*100}%"></div></div>
      <span class="bar-qtd">${e.quantidade}</span></div>`).join("");
+  contEtapas.querySelectorAll(".bar-row").forEach((el, i) =>
+    el.addEventListener("click", () => abrirOportunidades(d.por_etapa[i].etapa)));
 
+  // Ranking — clicar num vendedor abre Oportunidades filtrada nele
   const maxVend = Math.max(1, ...d.top_vendedores.map(v => v.abertas));
-  document.getElementById("top-vendedores").innerHTML = d.top_vendedores.map(v =>
-    `<div class="rank-row"><span class="rank-nome" title="${v.vendedor}">${v.vendedor}</span>
+  const contVend = document.getElementById("top-vendedores");
+  contVend.innerHTML = d.top_vendedores.map(v =>
+    `<div class="rank-row clicavel" title="Ver as negociações de ${v.vendedor}">
+     <span class="rank-nome pessoa"><span class="avatar">${iniciais(v.vendedor)}</span>${v.vendedor}</span>
      <div class="rank-track"><div class="rank-fill" style="width:${(v.abertas/maxVend)*100}%"></div></div>
      <span class="qtd">${v.abertas}</span></div>`).join("");
+  contVend.querySelectorAll(".rank-row").forEach((el, i) =>
+    el.addEventListener("click", () => abrirOportunidades("", d.top_vendedores[i].vendedor)));
 }
 
 // ===== ATIVIDADES =====
@@ -116,7 +148,7 @@ async function carregarAtividades() {
   document.getElementById("atv-total").textContent = `${d.total} atividade(s)`;
   document.getElementById("atv-lista").innerHTML = d.atividades.map(a =>
     `<div class="tl-item">
-       <div class="tl-head"><b>${a.vendedor}</b> <span class="muted">${a.data}</span></div>
+       <div class="tl-head"><span class="pessoa"><span class="avatar">${iniciais(a.vendedor)}</span><b>${a.vendedor}</b></span> <span class="muted">${a.data}</span></div>
        ${a.negociacao ? `<div class="tl-deal">${a.negociacao}</div>` : ""}
        <div class="tl-text">${(a.texto || "").replace(/</g,"&lt;")}</div>
      </div>`).join("") || vazio("Nenhuma atividade encontrada.");
@@ -125,8 +157,10 @@ async function carregarAtividades() {
 // ===== OPORTUNIDADES =====
 let opFiltrosCarregados = false;
 async function carregarOportunidades() {
-  const etapa = document.getElementById("op-etapa").value;
-  const vend = document.getElementById("op-vendedor").value;
+  // Se veio de um clique da Home (etapa/vendedor), usa esse filtro; senão, o dos selects
+  const pend = opFiltroPendente; opFiltroPendente = null;
+  const etapa = pend ? pend.etapa : document.getElementById("op-etapa").value;
+  const vend = pend ? pend.vendedor : document.getElementById("op-vendedor").value;
   const d = await getJSON(`/api/oportunidades?etapa=${encodeURIComponent(etapa)}&vendedor=${encodeURIComponent(vend)}`);
   if (!opFiltrosCarregados) {
     document.getElementById("op-etapa").innerHTML =
@@ -139,8 +173,10 @@ async function carregarOportunidades() {
   document.getElementById("op-vendedor").value = vend;
   document.getElementById("op-total").textContent = `${d.total_filtrado} negociação(ões) · ${d.valor_filtrado_fmt}`;
   document.querySelector("#op-tabela tbody").innerHTML = d.negociacoes.map(n =>
-    `<tr><td>${n.name}</td><td>${n.empresa||""}</td><td>${n.etapa}</td><td>${n.vendedor}</td>
-     <td class="num">${n.valor_fmt}</td><td>${n.ultima_atividade||""}</td></tr>`).join("")
+    `<tr><td><b>${n.name}</b></td><td>${n.empresa||""}</td>
+     <td><span class="chip">${n.etapa}</span></td>
+     <td><span class="pessoa"><span class="avatar">${iniciais(n.vendedor)}</span>${n.vendedor}</span></td>
+     <td class="num">${n.valor_fmt}</td><td class="muted">${n.ultima_atividade||""}</td></tr>`).join("")
     || `<tr><td colspan='6'>${vazio("Nenhuma negociação.")}</td></tr>`;
 }
 
@@ -162,8 +198,12 @@ async function carregarRelatorios() {
   ];
   document.getElementById("rel-cards").innerHTML = cards.map(c =>
     `<div class="card"><div class="rotulo">${c.rotulo}</div><div class="valor ${c.cls}">${c.valor}</div></div>`).join("");
+  const maxConv = Math.max(1, ...d.por_vendedor.map(v => v.conversao));
   document.querySelector("#rel-tabela tbody").innerHTML = d.por_vendedor.map(v =>
-    `<tr><td>${v.vendedor}</td><td>${v.cargo||"—"}</td><td class="num">${v.abertas}</td><td class="num">${v.ganhas}</td><td class="num">${v.perdidas}</td><td class="num">${v.conversao}%</td></tr>`).join("");
+    `<tr><td><span class="pessoa"><span class="avatar">${iniciais(v.vendedor)}</span>
+       <span><b>${v.vendedor}</b><span class="sub">${v.cargo||"—"}</span></span></span></td>
+     <td class="num">${v.abertas}</td><td class="num">${v.ganhas}</td><td class="num">${v.perdidas}</td>
+     <td><span class="meter"><span class="meter-track"><span class="meter-fill" style="width:${(v.conversao/maxConv)*100}%"></span></span><b>${v.conversao}%</b></span></td></tr>`).join("");
 
   if (typeof Chart === "undefined") return; // sem internet para carregar a biblioteca
 
