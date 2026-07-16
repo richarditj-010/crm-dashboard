@@ -23,10 +23,12 @@ def destinatarios() -> list:
     return [e.strip() for e in RELATORIO_EMAIL_TO.split(",") if e.strip()]
 
 
-def enviar_relatorio_email(assunto, corpo_texto, anexo_nome=None, anexo_conteudo=None):
+def enviar_relatorio_email(assunto, corpo_texto, anexo_nome=None, anexo_conteudo=None,
+                           corpo_html=None):
     """Envia o relatório por email. Levanta exceção se falhar (quem chama trata).
 
-    - corpo_texto: resumo legível (texto simples) que aparece no corpo do email.
+    - corpo_texto: resumo legível (texto simples) — fica como alternativa/fallback.
+    - corpo_html: versão BONITA do corpo (HTML) — é a que o Outlook/Gmail mostram.
     - anexo_nome / anexo_conteudo: anexo opcional — bytes de um .pdf ou texto de um .md.
     Retorna a lista de destinatários para quem foi enviado.
     """
@@ -36,6 +38,8 @@ def enviar_relatorio_email(assunto, corpo_texto, anexo_nome=None, anexo_conteudo
     msg["From"] = SMTP_FROM
     msg["To"] = ", ".join(destinos)
     msg.set_content(corpo_texto)
+    if corpo_html:
+        msg.add_alternative(corpo_html, subtype="html")
 
     if anexo_nome and anexo_conteudo is not None:
         if isinstance(anexo_conteudo, bytes):

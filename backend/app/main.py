@@ -27,7 +27,7 @@ from app.config import (
 from app.db.database import init_db, SessionLocal
 from app.db.models import Deal, User, DealStage, Activity, SyncLog
 from app.sync import sincronizar
-from app import emailer, pdf_relatorio
+from app import emailer, email_html, pdf_relatorio
 
 FUSO_BR = timezone(timedelta(hours=-3))
 
@@ -945,11 +945,16 @@ def _gerar_e_enviar_relatorio():
         db.close()
     corpo = _resumo_email(m)
     prioridades, acao = _prioridades_semana(m)
-    anexo_pdf = pdf_relatorio.gerar_pdf(m, prioridades, acao, _pontos_atencao(m))
-    hoje = datetime.now(FUSO_BR).strftime("%d/%m/%Y")
-    nome_arq = "relatorio-crm-" + datetime.now(FUSO_BR).strftime("%Y-%m-%d") + ".pdf"
+    atencao = _pontos_atencao(m)
+    anexo_pdf = pdf_relatorio.gerar_pdf(m, prioridades, acao, atencao)
+    agora = datetime.now(FUSO_BR)
+    corpo_html = email_html.corpo_html(m, prioridades, acao, atencao,
+                                       semana=agora.strftime("%d/%m"))
+    hoje = agora.strftime("%d/%m/%Y")
+    nome_arq = "relatorio-crm-" + agora.strftime("%Y-%m-%d") + ".pdf"
     assunto = f"Relatório Comercial CRM — Hai Logistics ({hoje})"
-    destinos = emailer.enviar_relatorio_email(assunto, corpo, nome_arq, anexo_pdf)
+    destinos = emailer.enviar_relatorio_email(assunto, corpo, nome_arq, anexo_pdf,
+                                              corpo_html=corpo_html)
     return True, "Relatório enviado para " + ", ".join(destinos) + "."
 
 
@@ -1022,12 +1027,16 @@ def relatorio_semanal_dados(chave: str = ""):
         db.close()
     corpo = _resumo_email(m)
     prioridades, acao = _prioridades_semana(m)
-    anexo_pdf = pdf_relatorio.gerar_pdf(m, prioridades, acao, _pontos_atencao(m))
+    atencao = _pontos_atencao(m)
+    anexo_pdf = pdf_relatorio.gerar_pdf(m, prioridades, acao, atencao)
     agora = datetime.now(FUSO_BR)
     return {
         "pronto": True,
         "assunto": f"Relatório Comercial CRM — Hai Logistics ({agora.strftime('%d/%m/%Y')})",
         "corpo": corpo,
+        # Versão BONITA do corpo (HTML) — o robô do Google usa como htmlBody.
+        "corpo_html": email_html.corpo_html(m, prioridades, acao, atencao,
+                                            semana=agora.strftime("%d/%m")),
         "nome_arquivo": "relatorio-crm-" + agora.strftime("%Y-%m-%d") + ".pdf",
         "pdf_base64": base64.b64encode(anexo_pdf).decode("ascii"),
         "destinatarios": emailer.destinatarios(),
