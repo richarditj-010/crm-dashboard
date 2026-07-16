@@ -138,8 +138,9 @@ _LOGIN_HTML = """<!DOCTYPE html>
   @keyframes hai-fade-up{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
   @keyframes hai-shake-k{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
   @keyframes hai-shimmer-sweep{0%{transform:translateX(-150%) skewX(-18deg)}100%{transform:translateX(250%) skewX(-18deg)}}
-  .topo{padding:26px 34px}
-  .topo img{height:34px;width:auto;opacity:.95}
+  .topo{padding:26px 38px 0}
+  .topo img{height:88px;width:auto;opacity:.97;filter:drop-shadow(0 2px 8px rgba(4,18,31,.25))}
+  @media (max-width:640px){.topo img{height:64px}}
   .palco{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 34px 60px}
   .duas{display:grid;grid-template-columns:400px 1fr;gap:72px;align-items:center;max-width:1040px;width:100%}
   .cartao{background:#fff;border-radius:18px;padding:34px 32px;border:1px solid rgba(255,255,255,.4);
