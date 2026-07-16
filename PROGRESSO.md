@@ -1,7 +1,32 @@
 # 📋 PROGRESSO DO PROJETO — CRM Dashboard (Hai Logistics)
 
 > Documento vivo: atualizado a cada passo. Serve para você saber **o que já está pronto**,
-> **onde paramos** e **o que vem a seguir**. Última atualização: **02/07/2026**.
+> **onde paramos** e **o que vem a seguir**. Última atualização: **16/07/2026**.
+
+---
+
+## 🔄 MIGRAÇÃO: RD Station → Pipedrive (16/07/2026)
+
+A Hai **trocou de CRM**: saiu do RD Station e passou a usar o **Pipedrive** (o RD Station
+não é mais alimentado). O painel foi migrado para puxar do Pipedrive — **tudo o mais
+continua igual** (telas, relatórios, email de segunda, login).
+
+**O que mudou por baixo (só a "fonte" dos dados):**
+- Novo motor `backend/app/integration/pipedrive_client.py` (conversa com a API do Pipedrive).
+- `sync.py` agora traduz Pipedrive → mesmas tabelas do banco (nada mais mudou).
+- `config.py`: token via `PIPEDRIVE_TOKEN`; equipe/cargos atualizados; lista de
+  ex-funcionários zerada (todos os usuários atuais visíveis).
+
+**Conferência (16/07/2026) — painel × API do Pipedrive, no mesmo instante:**
+- Abertas ✅ 889 = 889 · Ganhas ✅ 16 = 16 · Perdidas ✅ 677 = 677.
+- Nuvem (Render) também conferida = 889 abertas. **PC e nuvem migrados e corretos.**
+- Ressalva (igual à do RD Station): a equipe quase não preenche valor (só 14 de 889
+  abertas têm valor > R$0) — as **contagens** é que são confiáveis, não o R$ do pipeline.
+
+**Token do Pipedrive:** de admin (Simeão), guardado no `.env` local e como env var
+`PIPEDRIVE_TOKEN` no Render. O `RD_CRM_TOKEN` antigo ficou só como backup.
+
+**Falta:** Etapa 7 — melhorar design/layout (a pedido do Richard, é a última etapa).
 
 ---
 
@@ -157,6 +182,23 @@ Daiane Cristina Pereira, Camila Peres, Simeão Batista (+ Natalia Otero, sem neg
 
 ## 🗒️ Histórico (changelog)
 
+- **16/07/2026 (tarde)** — **VISUAL NOVO: design system Hai.** O painel ganhou a mesma
+  identidade do sistema interno da Hai: logo oficial no topo, fonte Inter, cartões
+  arredondados, gráficos limpos numa cor só (azul-marinho da marca), tabelas com
+  cabeçalho fixo e números alinhados, tela de **login nova** (fundo navy "aurora" +
+  cartão branco + "Movendo seu sucesso"), animações suaves. Corrigido o filtro de
+  etapas de Oportunidades (25 repetidas → 7 únicas). Revisão adversarial com 3
+  revisores: 7 achados, todos corrigidos (celular sem rolagem lateral, rosca com
+  total central sempre alinhado, abas navegáveis por teclado etc.). Logo e inspiração
+  movidas de Downloads para o projeto (`frontend/img/` e `design/`). Nada de lógica,
+  dados ou textos mudou — só o visual.
+- **16/07/2026** — **MIGRAÇÃO PARA O PIPEDRIVE.** A Hai trocou de CRM (RD Station →
+  Pipedrive). Trocada só a "fonte" dos dados: novo `pipedrive_client.py` + `sync.py`
+  adaptado; o resto (telas/relatórios/email/login) segue idêntico. Token de admin
+  (Simeão) no `.env` e no Render (`PIPEDRIVE_TOKEN`). Números conferidos contra a API
+  ao vivo: abertas 889, ganhas 16, perdidas 677 — batem exato no PC **e** na nuvem.
+  Equipe/cargos atualizados (Jeisson, Amanda, Fabrício Sant'Anna, Natalia adicionados;
+  Simeão corrigido). Commit `9a2a904` publicado; Render redeployado e conferido.
 - **02/07/2026** — **Relatório semanal por email FUNCIONANDO** (testado de verdade, 2 envios
   reais recebidos). Como o Microsoft 365 não permite mais envio simples (SMTP), foi criada
   uma conta Gmail só para disparos: `disparoemailrichard@gmail.com` (senha de aplicativo no

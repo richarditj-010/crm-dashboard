@@ -1,6 +1,9 @@
 # Segredos - NUNCA versionar
 .env
 
+# Referências de design (contém print de sistema interno - não publicar)
+design/
+
 # Banco de dados local
 data/*.db
 data/*.sqlite

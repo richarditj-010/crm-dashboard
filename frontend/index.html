@@ -4,30 +4,36 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CRM Dashboard — Hai Logistics</title>
+  <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo">📊</span>
-      <div>
-        <h1>CRM Dashboard</h1>
-        <small>Hai Logistics · RD Station CRM</small>
+  <header class="cabecalho">
+    <div class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="/static/img/logo-hai.png" alt="Hai Logistics" />
+        <span class="brand-divisor"></span>
+        <div>
+          <h1>CRM Dashboard</h1>
+          <small>Hai Logistics · Pipedrive</small>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span id="ultimo-sync" class="sync-label">Última sincronização: —</span>
+        <button id="btn-atualizar" class="btn azul hai-press">↻ Atualizar</button>
       </div>
     </div>
-    <div class="topbar-right">
-      <span id="ultimo-sync" class="sync-label">Última sincronização: —</span>
-      <button id="btn-atualizar" class="btn">↻ Atualizar</button>
-    </div>
+    <nav class="tabs">
+      <a class="tab active" data-aba="home" tabindex="0">Home</a>
+      <a class="tab" data-aba="atividades" tabindex="0">Atividades</a>
+      <a class="tab" data-aba="oportunidades" tabindex="0">Oportunidades</a>
+      <a class="tab" data-aba="relatorios" tabindex="0">Relatórios</a>
+      <a class="tab" data-aba="perguntas" tabindex="0">Perguntas Rápidas</a>
+    </nav>
   </header>
-
-  <nav class="tabs">
-    <a class="tab active" data-aba="home">Home</a>
-    <a class="tab" data-aba="atividades">Atividades</a>
-    <a class="tab" data-aba="oportunidades">Oportunidades</a>
-    <a class="tab" data-aba="relatorios">Relatórios</a>
-    <a class="tab" data-aba="perguntas">Perguntas Rápidas</a>
-  </nav>
 
   <main class="container">
 
@@ -36,11 +42,11 @@
       <div class="cards" id="cards"></div>
       <div class="grid2">
         <section class="panel">
-          <h2>Pipeline por etapa <small>(abertas)</small></h2>
+          <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>Pipeline por etapa <small>(abertas)</small></h2>
           <div id="por-etapa" class="bars"></div>
         </section>
         <section class="panel">
-          <h2>Negociações abertas por vendedor</h2>
+          <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Negociações abertas por vendedor</h2>
           <div id="top-vendedores" class="rank"></div>
         </section>
       </div>
@@ -49,11 +55,14 @@
     <!-- ATIVIDADES -->
     <section id="aba-atividades" class="aba oculta">
       <section class="panel">
-        <h2>Linha do tempo de atividades</h2>
+        <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>Linha do tempo de atividades</h2>
         <div class="filtros">
           <select id="atv-vendedor"><option value="">Todos os vendedores</option></select>
-          <input id="atv-busca" type="text" placeholder="Buscar no texto..." />
-          <button class="btn azul" onclick="carregarAtividades()">Filtrar</button>
+          <span class="campo-busca">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="atv-busca" type="text" placeholder="Buscar no texto..." />
+          </span>
+          <button class="btn azul hai-press" onclick="carregarAtividades()">Filtrar</button>
           <span id="atv-total" class="muted"></span>
         </div>
         <div id="atv-lista" class="timeline"></div>
@@ -63,16 +72,16 @@
     <!-- OPORTUNIDADES -->
     <section id="aba-oportunidades" class="aba oculta">
       <section class="panel">
-        <h2>Oportunidades em aberto</h2>
+        <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>Oportunidades em aberto</h2>
         <div class="filtros">
           <select id="op-etapa"><option value="">Todas as etapas</option></select>
           <select id="op-vendedor"><option value="">Todos os vendedores</option></select>
-          <button class="btn azul" onclick="carregarOportunidades()">Filtrar</button>
+          <button class="btn azul hai-press" onclick="carregarOportunidades()">Filtrar</button>
           <span id="op-total" class="muted"></span>
         </div>
         <div class="tabela-wrap">
           <table class="tabela" id="op-tabela">
-            <thead><tr><th>Negociação</th><th>Empresa</th><th>Etapa</th><th>Vendedor</th><th>Valor</th><th>Últ. atividade</th></tr></thead>
+            <thead><tr><th>Negociação</th><th>Empresa</th><th>Etapa</th><th>Vendedor</th><th class="num">Valor</th><th>Últ. atividade</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -84,27 +93,33 @@
       <div class="cards" id="rel-cards"></div>
       <div class="grid2">
         <section class="panel">
-          <h2>Funil — negociações abertas por etapa</h2>
+          <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>Funil — negociações abertas por etapa</h2>
           <canvas id="g-funil" height="220"></canvas>
         </section>
         <section class="panel">
-          <h2>Ganhas × Perdidas × Abertas</h2>
-          <canvas id="g-status" height="220"></canvas>
+          <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>Ganhas × Perdidas × Abertas</h2>
+          <div class="donut-wrap">
+            <canvas id="g-status" height="220"></canvas>
+            <div class="donut-center">
+              <span class="donut-total" id="donut-total"></span>
+              <span class="donut-rotulo" id="donut-rotulo"></span>
+            </div>
+          </div>
         </section>
         <section class="panel">
-          <h2>Negociações abertas por vendedor</h2>
+          <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Negociações abertas por vendedor</h2>
           <canvas id="g-vendedor" height="260"></canvas>
         </section>
         <section class="panel">
-          <h2>Negociações criadas por mês</h2>
+          <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>Negociações criadas por mês</h2>
           <canvas id="g-mes" height="260"></canvas>
         </section>
       </div>
-      <section class="panel">
-        <h2>Desempenho por vendedor</h2>
+      <section class="panel" style="margin-top:16px">
+        <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M12 3v18"/></svg></span>Desempenho por vendedor</h2>
         <div class="tabela-wrap">
           <table class="tabela" id="rel-tabela">
-            <thead><tr><th>Vendedor</th><th>Cargo</th><th>Abertas</th><th>Ganhas</th><th>Perdidas</th><th>Conversão</th></tr></thead>
+            <thead><tr><th>Vendedor</th><th>Cargo</th><th class="num">Abertas</th><th class="num">Ganhas</th><th class="num">Perdidas</th><th class="num">Conversão</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -114,14 +129,16 @@
     <!-- PERGUNTAS RAPIDAS -->
     <section id="aba-perguntas" class="aba oculta">
       <section class="panel destaque-relatorio">
-        <h2>📄 Relatório Geral</h2>
-        <p class="muted">Baixa um arquivo com o relatório completo do dia (todos os números do funil,
-          vendedores e atividades). É só anexar no email e enviar.</p>
-        <button class="btn verde grande" onclick="window.location.href='/api/relatorio-geral'">📄 Baixar Relatório Geral</button>
+        <div>
+          <h2><span class="icone-quadro" style="background:linear-gradient(135deg,#059669,#065f46)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>Relatório Geral</h2>
+          <p class="muted">Baixa um arquivo com o relatório completo do dia (todos os números do funil,
+            vendedores e atividades). É só anexar no email e enviar.</p>
+        </div>
+        <button class="btn verde grande hai-shimmer hai-press" onclick="window.location.href='/api/relatorio-geral'">📄 Baixar Relatório Geral</button>
       </section>
 
       <section class="panel">
-        <h2>Perguntas Rápidas</h2>
+        <h2><span class="icone-quadro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></span>Perguntas Rápidas</h2>
         <p class="muted">Clique numa pergunta para ver a resposta na hora (gerada dos seus próprios dados, sem custo).
           <span id="pr-gerado"></span></p>
         <div class="pr-botoes" id="pr-botoes"></div>
@@ -129,7 +146,7 @@
       </section>
     </section>
 
-    <p class="rodape">Dados lidos do RD Station CRM (conta da empresa) e guardados localmente. Fase 1.</p>
+    <p class="rodape">Dados lidos do Pipedrive (conta da empresa) e guardados localmente.</p>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

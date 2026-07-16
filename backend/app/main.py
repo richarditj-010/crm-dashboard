@@ -83,38 +83,122 @@ def _logado(request) -> bool:
     return secrets.compare_digest(request.cookies.get(COOKIE_LOGIN, ""), SELO_LOGIN)
 
 
-def _pagina_login(erro: bool = False) -> HTMLResponse:
-    """A telinha de login: só uma caixa de senha + botão Entrar."""
-    aviso = '<p class="erro">Senha incorreta. Tente de novo.</p>' if erro else ""
-    html = f"""<!DOCTYPE html>
+def _b64_asset(nome: str) -> str:
+    """Lê uma imagem do frontend e devolve em base64 (para embutir na tela de login,
+    que aparece ANTES do login — o /static é protegido pela senha)."""
+    try:
+        return base64.b64encode((FRONTEND_DIR / "img" / nome).read_bytes()).decode("ascii")
+    except Exception:
+        return ""
+
+
+_LOGO_LOGIN_B64 = _b64_asset("logo-hai-branca.png")
+_FAVICON_B64 = _b64_asset("favicon.png")
+
+# Tela de login no design system da Hai (mesma cara do sistema interno):
+# fundo navy "aurora", cartão branco à esquerda, destaque da marca à direita.
+_LOGIN_HTML = """<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Entrar — CRM Dashboard</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,__FAVICON__" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
-  *{{box-sizing:border-box}} body{{margin:0;font-family:Segoe UI,Arial,sans-serif;
-    background:#0f2540;display:flex;align-items:center;justify-content:center;min-height:100vh}}
-  .cartao{{background:#fff;padding:36px 32px;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.3);
-    width:340px;text-align:center}}
-  .logo{{font-size:42px}} h1{{font-size:20px;margin:8px 0 2px;color:#0f2540}}
-  small{{color:#6b7a90}} form{{margin-top:22px}}
-  input{{width:100%;padding:13px 14px;font-size:16px;border:2px solid #cdd7e3;border-radius:9px;
-    outline:none}} input:focus{{border-color:#1565c0}}
-  button{{width:100%;margin-top:12px;padding:13px;font-size:16px;font-weight:600;color:#fff;
-    background:#1565c0;border:0;border-radius:9px;cursor:pointer}} button:hover{{background:#0d47a1}}
-  .erro{{color:#c62828;font-size:14px;margin:14px 0 0}}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Inter",ui-sans-serif,system-ui,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column;
+    background:linear-gradient(125deg,#16608f 0%,#12557e 30%,#0a2c42 55%,#12557e 80%,#16608f 100%);
+    background-size:280% 280%;animation:hai-aurora 22s ease infinite}
+  @keyframes hai-aurora{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  @keyframes hai-blur-up{from{opacity:0;filter:blur(6px);transform:translateY(10px)}to{opacity:1;filter:blur(0);transform:none}}
+  @keyframes hai-fade-up{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+  @keyframes hai-shake-k{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+  @keyframes hai-shimmer-sweep{0%{transform:translateX(-150%) skewX(-18deg)}100%{transform:translateX(250%) skewX(-18deg)}}
+  .topo{padding:26px 34px}
+  .topo img{height:34px;width:auto;opacity:.95}
+  .palco{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 34px 60px}
+  .duas{display:grid;grid-template-columns:400px 1fr;gap:72px;align-items:center;max-width:1040px;width:100%}
+  .cartao{background:#fff;border-radius:18px;padding:34px 32px;border:1px solid rgba(255,255,255,.4);
+    box-shadow:0 24px 60px -12px rgba(4,18,31,.5);animation:hai-blur-up .6s cubic-bezier(.22,.61,.36,1) both}
+  .cartao.hai-shake{animation:hai-blur-up .6s cubic-bezier(.22,.61,.36,1) both,hai-shake-k .45s ease-out .15s both}
+  .cartao h1{font-size:20px;font-weight:700;color:#0f172a}
+  .cartao small{display:block;font-size:13px;color:#64748b;margin-top:3px}
+  .erro{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;
+    font-size:13px;padding:10px 12px;margin-top:16px}
+  form{margin-top:22px}
+  label{display:block;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+    color:#94a3b8;margin-bottom:7px}
+  .campo{position:relative}
+  .campo svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:#94a3b8}
+  input{width:100%;padding:12px 13px 12px 37px;font-size:15px;color:#0f172a;background:#f8fafc;
+    border:1px solid #e2e8f0;border-radius:12px;outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+  input:focus{border-color:#4d8bba;background:#fff;box-shadow:0 0 0 3px #d9e8f2}
+  button{position:relative;overflow:hidden;width:100%;margin-top:16px;padding:13px;font-family:inherit;
+    font-size:15px;font-weight:600;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;
+    background:linear-gradient(to bottom,#16608f,#12557e);border:0;border-radius:12px;cursor:pointer;
+    box-shadow:0 6px 16px -4px rgba(10,44,66,.45);transition:transform .12s ease,box-shadow .15s ease}
+  button:hover{background:linear-gradient(to bottom,#12557e,#0e4467);box-shadow:0 8px 20px -4px rgba(10,44,66,.55)}
+  button:active{transform:translateY(1px) scale(.99)}
+  button::after{content:"";position:absolute;top:0;bottom:0;width:40%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);
+    animation:hai-shimmer-sweep 2.8s ease-in-out infinite;pointer-events:none}
+  button svg{width:16px;height:16px}
+  .lado{color:#fff;animation:hai-fade-up .9s cubic-bezier(.22,.61,.36,1) .15s both}
+  .lado h2{font-size:31px;font-weight:700;line-height:1.2;text-wrap:balance}
+  .lado .sub{font-size:15px;color:#d9e8f2;margin-top:12px;max-width:46ch;line-height:1.55}
+  .itens{margin-top:30px;display:flex;flex-direction:column;gap:16px}
+  .item{display:flex;align-items:center;gap:13px;font-size:14.5px}
+  .item .ico{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;flex-shrink:0;
+    border-radius:12px;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+  .item .ico svg{width:17px;height:17px}
+  .lado .rodape{margin-top:34px;font-size:12.5px;color:#86b2d3}
+  @media (max-width:900px){.duas{grid-template-columns:minmax(0,400px);justify-content:center}.lado{display:none}.topo{text-align:center}}
+  @media (prefers-reduced-motion:reduce){body,.cartao,.cartao.hai-shake,.lado,button::after{animation:none}}
 </style></head>
 <body>
-  <div class="cartao">
-    <div class="logo">📊</div>
-    <h1>CRM Dashboard</h1>
-    <small>Hai Logistics</small>
-    {aviso}
-    <form method="post" action="/login">
-      <input type="password" name="senha" placeholder="Digite a senha" autofocus required />
-      <button type="submit">Entrar</button>
-    </form>
+  <div class="topo"><img src="data:image/png;base64,__LOGO__" alt="Hai Logistics" /></div>
+  <div class="palco">
+    <div class="duas">
+      <div class="cartao__SHAKE__">
+        <h1>CRM Dashboard</h1>
+        <small>Hai Logistics</small>
+        __AVISO__
+        <form method="post" action="/login">
+          <label for="senha">Senha</label>
+          <div class="campo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input id="senha" type="password" name="senha" placeholder="Digite a senha" autofocus required />
+          </div>
+          <button type="submit">Entrar
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        </form>
+      </div>
+      <div class="lado">
+        <h2>Movendo seu sucesso</h2>
+        <p class="sub">Acompanhe o funil, a equipe e os resultados comerciais — tudo num só lugar.</p>
+        <div class="itens">
+          <div class="item"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>Funil por etapa e por vendedor</div>
+          <div class="item"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></span>Perguntas rápidas com respostas na hora</div>
+          <div class="item"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>Relatório semanal no seu e-mail</div>
+        </div>
+        <p class="rodape">© Hai Logistics · uso interno</p>
+      </div>
+    </div>
   </div>
 </body></html>"""
+
+
+def _pagina_login(erro: bool = False) -> HTMLResponse:
+    """A telinha de login: só uma caixa de senha + botão Entrar."""
+    aviso = '<p class="erro" role="alert">Senha incorreta. Tente de novo.</p>' if erro else ""
+    html = (_LOGIN_HTML
+            .replace("__AVISO__", aviso)
+            .replace("__SHAKE__", " hai-shake" if erro else "")
+            .replace("__LOGO__", _LOGO_LOGIN_B64)
+            .replace("__FAVICON__", _FAVICON_B64))
     return HTMLResponse(html, status_code=401 if erro else 200)
 
 
@@ -384,6 +468,15 @@ def oportunidades(etapa: str = "", vendedor: str = ""):
         # ordena por última atividade (mais recentes primeiro)
         filtradas.sort(key=lambda d: d.last_activity_at or "", reverse=True)
 
+        # Os 4 funis do Pipedrive repetem as MESMAS etapas — no filtro, cada nome
+        # aparece uma vez só (o filtro compara por nome, então continua funcionando).
+        etapas_unicas, _vistos = [], set()
+        for s in stages:
+            nome = " ".join((s.name or "").split())
+            if nome and nome.lower() not in _vistos:
+                _vistos.add(nome.lower())
+                etapas_unicas.append(nome)
+
         lista = [{
             "name": d.name,
             "etapa": d.stage_name,
@@ -395,7 +488,7 @@ def oportunidades(etapa: str = "", vendedor: str = ""):
         } for d in filtradas[:400]]
 
         return {
-            "etapas": [s.name for s in stages],
+            "etapas": etapas_unicas,
             "vendedores": [u.name for u in users if u.name and not eh_ex_funcionario(u.name)],
             "total_filtrado": len(filtradas),
             "valor_filtrado_fmt": _moeda(sum(d.amount_total for d in filtradas)),

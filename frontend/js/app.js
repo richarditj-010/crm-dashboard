@@ -1,16 +1,69 @@
+// ===== Design system Hai — cores e padrões visuais dos gráficos =====
+const HAI = {
+  azul: "#16608f",        // hai-500 (cor única dos dados)
+  azulEscuro: "#0e4467",  // hai-700 (hover)
+  ok: "#059669",          // ganhas
+  erro: "#dc2626",        // perdidas
+  grid: "rgba(15,23,42,.06)",
+  tick: "#94a3b8",
+  texto: "#64748b",
+};
+
+if (typeof Chart !== "undefined") {
+  Chart.defaults.font.family = "'Inter', ui-sans-serif, system-ui, 'Segoe UI', Roboto, Arial, sans-serif";
+  Chart.defaults.font.size = 11;
+  Chart.defaults.color = HAI.texto;
+  Chart.defaults.plugins.tooltip.backgroundColor = "rgba(15,23,42,.92)";
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 10;
+  Chart.defaults.plugins.tooltip.titleFont = { size: 12, weight: "600" };
+  Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
+  Chart.defaults.plugins.tooltip.boxWidth = 8;
+  Chart.defaults.plugins.tooltip.boxHeight = 8;
+  Chart.defaults.plugins.tooltip.usePointStyle = true;
+}
+
+// Eixo de valores "fantasma" (grid a 6%, sem borda) + eixo de categorias limpo
+function eixos(horizontal) {
+  const valores = {
+    grid: { color: HAI.grid, drawTicks: false },
+    border: { display: false },
+    ticks: { color: HAI.tick, maxTicksLimit: 6, precision: 0 },
+    beginAtZero: true,
+  };
+  const categorias = {
+    grid: { display: false },
+    border: { display: false },
+    ticks: { color: HAI.texto },
+  };
+  return horizontal ? { x: valores, y: categorias } : { x: categorias, y: valores };
+}
+
+// Ícone de estado vazio (caixa de entrada)
+const VAZIO_SVG = `<svg class="hai-bob" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>`;
+function vazio(texto) {
+  return `<div class="vazio">${VAZIO_SVG}<span>${texto}</span></div>`;
+}
+
 // ===== Navegação entre abas =====
 const abas = document.querySelectorAll(".tab");
-abas.forEach(t => t.addEventListener("click", () => {
-  abas.forEach(x => x.classList.remove("active"));
-  t.classList.add("active");
-  const alvo = t.dataset.aba;
-  document.querySelectorAll(".aba").forEach(s => s.classList.add("oculta"));
-  document.getElementById("aba-" + alvo).classList.remove("oculta");
-  if (alvo === "atividades") carregarAtividades();
-  if (alvo === "oportunidades") carregarOportunidades();
-  if (alvo === "relatorios") carregarRelatorios();
-  if (alvo === "perguntas") carregarPerguntas();
-}));
+abas.forEach(t => {
+  t.addEventListener("click", () => {
+    abas.forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    const alvo = t.dataset.aba;
+    document.querySelectorAll(".aba").forEach(s => s.classList.add("oculta"));
+    document.getElementById("aba-" + alvo).classList.remove("oculta");
+    if (alvo === "atividades") carregarAtividades();
+    if (alvo === "oportunidades") carregarOportunidades();
+    if (alvo === "relatorios") carregarRelatorios();
+    if (alvo === "perguntas") carregarPerguntas();
+  });
+  // Acessibilidade: as abas funcionam também pelo teclado (Tab + Enter/Espaço)
+  t.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); t.click(); }
+  });
+});
 
 // ===== HOME =====
 async function carregarHome() {
@@ -34,8 +87,11 @@ async function carregarHome() {
      <div class="bar-track"><div class="bar-fill" style="width:${(e.quantidade/maxQtd)*100}%"></div></div>
      <span class="bar-qtd">${e.quantidade}</span></div>`).join("");
 
+  const maxVend = Math.max(1, ...d.top_vendedores.map(v => v.abertas));
   document.getElementById("top-vendedores").innerHTML = d.top_vendedores.map(v =>
-    `<div class="rank-row"><span>${v.vendedor}</span><span class="qtd">${v.abertas}</span></div>`).join("");
+    `<div class="rank-row"><span class="rank-nome" title="${v.vendedor}">${v.vendedor}</span>
+     <div class="rank-track"><div class="rank-fill" style="width:${(v.abertas/maxVend)*100}%"></div></div>
+     <span class="qtd">${v.abertas}</span></div>`).join("");
 }
 
 // ===== ATIVIDADES =====
@@ -54,9 +110,9 @@ async function carregarAtividades() {
   document.getElementById("atv-lista").innerHTML = d.atividades.map(a =>
     `<div class="tl-item">
        <div class="tl-head"><b>${a.vendedor}</b> <span class="muted">${a.data}</span></div>
-       ${a.negociacao ? `<div class="tl-deal">📁 ${a.negociacao}</div>` : ""}
+       ${a.negociacao ? `<div class="tl-deal">${a.negociacao}</div>` : ""}
        <div class="tl-text">${(a.texto || "").replace(/</g,"&lt;")}</div>
-     </div>`).join("") || "<p class='muted'>Nenhuma atividade encontrada.</p>";
+     </div>`).join("") || vazio("Nenhuma atividade encontrada.");
 }
 
 // ===== OPORTUNIDADES =====
@@ -77,8 +133,8 @@ async function carregarOportunidades() {
   document.getElementById("op-total").textContent = `${d.total_filtrado} negociação(ões) · ${d.valor_filtrado_fmt}`;
   document.querySelector("#op-tabela tbody").innerHTML = d.negociacoes.map(n =>
     `<tr><td>${n.name}</td><td>${n.empresa||""}</td><td>${n.etapa}</td><td>${n.vendedor}</td>
-     <td>${n.valor_fmt}</td><td>${n.ultima_atividade||""}</td></tr>`).join("")
-    || "<tr><td colspan='6' class='muted'>Nenhuma negociação.</td></tr>";
+     <td class="num">${n.valor_fmt}</td><td>${n.ultima_atividade||""}</td></tr>`).join("")
+    || `<tr><td colspan='6'>${vazio("Nenhuma negociação.")}</td></tr>`;
 }
 
 // ===== RELATORIOS =====
@@ -87,7 +143,6 @@ function desenhar(id, config) {
   if (graficos[id]) graficos[id].destroy();
   graficos[id] = new Chart(document.getElementById(id), config);
 }
-const CORES = ["#1565c0","#2e7d32","#ef6c00","#6a1b9a","#00838f","#c62828","#558b2f","#4527a0","#ad1457","#00695c","#f9a825"];
 
 async function carregarRelatorios() {
   const d = await (await fetch("/api/relatorios")).json();
@@ -101,42 +156,69 @@ async function carregarRelatorios() {
   document.getElementById("rel-cards").innerHTML = cards.map(c =>
     `<div class="card"><div class="rotulo">${c.rotulo}</div><div class="valor ${c.cls}">${c.valor}</div></div>`).join("");
   document.querySelector("#rel-tabela tbody").innerHTML = d.por_vendedor.map(v =>
-    `<tr><td>${v.vendedor}</td><td>${v.cargo||"—"}</td><td>${v.abertas}</td><td>${v.ganhas}</td><td>${v.perdidas}</td><td>${v.conversao}%</td></tr>`).join("");
+    `<tr><td>${v.vendedor}</td><td>${v.cargo||"—"}</td><td class="num">${v.abertas}</td><td class="num">${v.ganhas}</td><td class="num">${v.perdidas}</td><td class="num">${v.conversao}%</td></tr>`).join("");
 
   if (typeof Chart === "undefined") return; // sem internet para carregar a biblioteca
 
-  // Funil por etapa (barras)
+  // Funil por etapa (barras horizontais, uma cor só — a marca)
   desenhar("g-funil", {
     type: "bar",
     data: { labels: d.por_etapa.map(e => e.etapa),
-      datasets: [{ label: "Abertas", data: d.por_etapa.map(e => e.quantidade), backgroundColor: "#1565c0" }] },
-    options: { plugins: { legend: { display: false } }, responsive: true },
+      datasets: [{ label: "Abertas", data: d.por_etapa.map(e => e.quantidade),
+        backgroundColor: HAI.azul, hoverBackgroundColor: HAI.azulEscuro,
+        borderRadius: 5, borderSkipped: "start", maxBarThickness: 22 }] },
+    options: { indexAxis: "y", responsive: true,
+      plugins: { legend: { display: false } }, scales: eixos(true) },
   });
 
-  // Ganhas x Perdidas x Abertas (rosca)
+  // Ganhas x Perdidas x Abertas (rosca fina com total no centro)
+  const total = g.ganhas + g.perdidas + g.abertas;
+  document.getElementById("donut-total").textContent = total.toLocaleString("pt-BR");
+  document.getElementById("donut-rotulo").textContent = "negociações";
   desenhar("g-status", {
     type: "doughnut",
     data: { labels: ["Ganhas","Perdidas","Abertas"],
-      datasets: [{ data: [g.ganhas, g.perdidas, g.abertas], backgroundColor: ["#2e7d32","#c62828","#1565c0"] }] },
-    options: { responsive: true },
+      datasets: [{ data: [g.ganhas, g.perdidas, g.abertas],
+        backgroundColor: [HAI.ok, HAI.erro, HAI.azul],
+        borderColor: "#fff", borderWidth: 2, hoverOffset: 4 }] },
+    options: { responsive: true, cutout: "72%",
+      layout: { padding: 6 },  // folga p/ o hoverOffset não cortar a fatia na borda
+      plugins: { legend: { position: "bottom",
+        labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 6, padding: 14 } } } },
+    // Mantém o número central alinhado ao centro REAL da rosca,
+    // qualquer que seja a altura da legenda.
+    plugins: [{
+      id: "centroRosca",
+      afterLayout(c) {
+        const el = document.querySelector(".donut-center");
+        if (el) el.style.transform =
+          "translateY(" + (((c.chartArea.top + c.chartArea.bottom) / 2) - (c.height / 2)) + "px)";
+      },
+    }],
   });
 
-  // Abertas por vendedor (barra horizontal)
+  // Abertas por vendedor (barra horizontal, uma cor só)
   desenhar("g-vendedor", {
     type: "bar",
     data: { labels: d.por_vendedor.map(v => v.vendedor),
       datasets: [{ label: "Abertas", data: d.por_vendedor.map(v => v.abertas),
-        backgroundColor: d.por_vendedor.map((_, i) => CORES[i % CORES.length]) }] },
-    options: { indexAxis: "y", plugins: { legend: { display: false } }, responsive: true },
+        backgroundColor: HAI.azul, hoverBackgroundColor: HAI.azulEscuro,
+        borderRadius: 5, borderSkipped: "start", maxBarThickness: 22 }] },
+    options: { indexAxis: "y", responsive: true,
+      plugins: { legend: { display: false } }, scales: eixos(true) },
   });
 
-  // Criadas por mês (linha)
+  // Criadas por mês (linha fina com área a 10%)
   desenhar("g-mes", {
     type: "line",
     data: { labels: d.por_mes.map(m => m.mes),
       datasets: [{ label: "Criadas", data: d.por_mes.map(m => m.quantidade),
-        borderColor: "#1565c0", backgroundColor: "rgba(21,101,192,.15)", fill: true, tension: .3 }] },
-    options: { plugins: { legend: { display: false } }, responsive: true },
+        borderColor: HAI.azul, borderWidth: 2, tension: .3,
+        backgroundColor: "rgba(22,96,143,.10)", fill: true,
+        pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 24,
+        pointBackgroundColor: HAI.azul, pointBorderColor: "#fff", pointBorderWidth: 2 }] },
+    options: { responsive: true, interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false } }, scales: eixos(false) },
   });
 }
 
@@ -162,11 +244,13 @@ function mostrarPergunta(id) {
     btn.classList.toggle("ativo", btn.getAttribute("onclick").includes(`'${id}'`)));
   const alvo = document.getElementById("pr-resposta");
   if (!b.linhas.length) {
-    alvo.innerHTML = `<h3>${esc(b.titulo)}</h3><p class="muted">${esc(b.vazio)}</p>`;
+    alvo.innerHTML = `<h3>${esc(b.titulo)}</h3>${vazio(esc(b.vazio))}`;
     return;
   }
-  const cab = b.colunas.map(c => `<th>${esc(c)}</th>`).join("");
-  const corpo = b.linhas.map(ln => `<tr>${ln.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("");
+  // Colunas com número (a partir da 2ª) alinham à direita
+  const numerica = b.linhas[0].map((c, i) => i > 0 && b.linhas.every(ln => !isNaN(parseFloat(String(ln[i]).replace(/[R$%.\s]/g, "").replace(",", ".")))));
+  const cab = b.colunas.map((c, i) => `<th${numerica[i] ? ' class="num"' : ""}>${esc(c)}</th>`).join("");
+  const corpo = b.linhas.map(ln => `<tr>${ln.map((c, i) => `<td${numerica[i] ? ' class="num"' : ""}>${esc(c)}</td>`).join("")}</tr>`).join("");
   alvo.innerHTML = `<h3>${esc(b.titulo)}</h3>
     <div class="tabela-wrap"><table class="tabela"><thead><tr>${cab}</tr></thead><tbody>${corpo}</tbody></table></div>`;
 }
@@ -187,4 +271,7 @@ setInterval(() => {
   const abaAtiva = document.querySelector(".tab.active")?.dataset.aba;
   if (abaAtiva === "home") carregarHome();
   prBlocos = [];  // força recarregar as "Perguntas Rápidas" com dados frescos
+  // Se a aba de perguntas estiver aberta, recarrega na hora (senão os botões
+  // ficariam "mortos" até o usuário trocar de aba e voltar).
+  if (abaAtiva === "perguntas") carregarPerguntas();
 }, 5 * 60 * 1000);
